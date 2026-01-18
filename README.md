@@ -1,6 +1,7 @@
-# Linux High Availability and Virtualization Course Materials
+# Linux High Availability and Virtualization notes 
 
 This repository contains comprehensive course materials for Linux High Availability (HA) and virtualization technologies. Each section includes detailed architecture documentation, deployment recommendations, code behavior analysis, and source code references.
+This data is collected for me as an cheatsheet, feel free to use and correct. I will update it if required and I use obsidian to view them so a git clone might be nice. 
 
 ## Repository Structure
 
