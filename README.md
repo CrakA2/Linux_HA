@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 # Linux High Availability and Virtualization
 
 Comprehensive course materials for Linux High Availability (HA) clustering and virtualization technologies including Corosync, Pacemaker, QEMU, KVM, CEPH, iSCSI, FC/NVMe-oF, GFS2, libvirt, virsh, and Open vSwitch.
+=======
+# Linux High Availability and Virtualization notes 
+
+This repository contains comprehensive course materials for Linux High Availability (HA) and virtualization technologies. Each section includes detailed architecture documentation, deployment recommendations, code behavior analysis, and source code references.
+This data is collected for me as an cheatsheet, feel free to use and correct. I will update it if required and I use obsidian to view them so a git clone might be nice. 
+>>>>>>> bdf0be4bc69beadb559553cf85616d882e069eb7
 
 ## Table of Contents
 - [Cluster Technologies](#cluster-technologies)
