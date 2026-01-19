@@ -24,7 +24,24 @@ mkdocs serve
 # Open http://127.0.0.1:8000
 ```
 
-## Topics Covered
+## Troubleshooting
+
+For in-depth troubleshooting focused on code behavior and diagnostics, see [Troubleshooting Code Behavior and Diagnostics](docs/troubleshooting-code-behavior.md).
+
+### Quick Troubleshooting
+
+#### Common Issues
+
+| Technology | Common Issue | Quick Fix |
+|-----------|--------------|------------|
+| Corosync | Token timeout errors | Increase `token: 10000` in corosync.conf |
+| Pacemaker | Resource stuck starting | Check resource agent with `ocf_resource:monitor` |
+| QEMU | VM slow performance | Enable KVM with `-enable-kvm` |
+| Ceph | OSD high latency | Check `ceph tell osd.* iostat` |
+| iSCSI | Cannot discover targets | Verify `iscsiadm -m discovery` connectivity |
+| GFS2 | Stale locks | Run `dlm_tool dump` to clear locks |
+
+For comprehensive code-level debugging guidance and diagnostic techniques, refer to the [dedicated troubleshooting guide](docs/troubleshooting-code-behavior.md).
 
 ### Cluster Management
 - Corosync messaging and quorum
