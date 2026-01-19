@@ -58,7 +58,7 @@ ceph osd tier add base-pool cache-pool
 ceph osd tier cache-mode cache-pool writeback
 ceph osd pool set cache-pool cache_target_dirty_ratio 0.4
 ```
-**Nifty**: Improve read performance with caching
+**Nifty**: Improve read performance with caching, ideally 4gb per drive
 
 ## Source Code
 
