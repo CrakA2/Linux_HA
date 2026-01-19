@@ -4,7 +4,7 @@ Comprehensive course materials and reference documentation for Linux High Availa
 
 ## Documentation
 
-The complete documentation is hosted on [GitHub Pages](https://YOUR_USERNAME.github.io/Linux_HA/) and includes:
+The complete documentation is hosted on [GitHub Pages](https://craka2.github.io/Linux_HA/) and includes:
 
 - **Cluster Technologies**: Corosync, Pacemaker
 - **Virtualization**: QEMU, KVM, libvirt, virsh, Open vSwitch
@@ -15,7 +15,7 @@ The complete documentation is hosted on [GitHub Pages](https://YOUR_USERNAME.git
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/Linux_HA.git
+git clone https://github.com/CrakA2/Linux_HA.git
 cd Linux_HA
 
 # View documentation locally
@@ -70,7 +70,8 @@ Course materials follow documentation licenses of their respective projects:
 
 ## Resources
 
-- [Live Documentation](https://YOUR_USERNAME.github.io/Linux_HA/)
+- [Repository](https://github.com/CrakA2/Linux_HA)
+- [Live Documentation](https://craka2.github.io/Linux_HA/)
 - [CEPH Documentation](https://docs.ceph.com/)
 - [ClusterLabs](https://www.clusterlabs.org/)
 - [KVM Documentation](https://www.linux-kvm.org/)
