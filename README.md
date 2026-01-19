@@ -2,7 +2,7 @@
 
 Comprehensive course materials and reference documentation for Linux High Availability (HA) clustering and virtualization technologies.
 
-## 📚 Documentation
+## Documentation
 
 The complete documentation is hosted on [GitHub Pages](https://YOUR_USERNAME.github.io/Linux_HA/) and includes:
 
@@ -11,7 +11,7 @@ The complete documentation is hosted on [GitHub Pages](https://YOUR_USERNAME.git
 - **Storage**: CEPH, iSCSI, NVMe-oF, GFS2
 - **Networking**: libvirt networking configurations
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clone repository
@@ -24,7 +24,7 @@ mkdocs serve
 # Open http://127.0.0.1:8000
 ```
 
-## 📖 Topics Covered
+## Topics Covered
 
 ### Cluster Management
 - Corosync messaging and quorum
@@ -48,7 +48,7 @@ mkdocs serve
 - DLM lock management
 - CLVM volume management
 
-## 🛠️ Development
+## Development
 
 To build the documentation site:
 
@@ -57,7 +57,7 @@ pip install -r requirements.txt
 mkdocs build
 ```
 
-## 📄 License
+## License
 
 Course materials follow documentation licenses of their respective projects:
 - Corosync: BSD License
@@ -68,7 +68,7 @@ Course materials follow documentation licenses of their respective projects:
 - libvirt: LGPL-2.1
 - Open vSwitch: Apache 2.0
 
-## 🔗 Resources
+## Resources
 
 - [Live Documentation](https://YOUR_USERNAME.github.io/Linux_HA/)
 - [CEPH Documentation](https://docs.ceph.com/)

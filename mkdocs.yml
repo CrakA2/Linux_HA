@@ -3,24 +3,7 @@ site_description: Comprehensive course materials for Linux High Availability (HA
 site_author: Linux HA Docs
 
 theme:
-  name: readthedocs
-  palette:
-    - scheme: default
-      primary: blue
-      accent: light blue
-    - scheme: slate
-      primary: blue
-      accent: light blue
-  features:
-    - navigation.instant
-    - navigation.tracking
-    - navigation.tabs
-    - navigation.sections
-    - navigation.expand
-    - navigation.indexes
-    - toc.follow
-    - search.suggest
-    - search.highlight
+  name: shadcn
 
 plugins:
   - search
