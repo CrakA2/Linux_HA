@@ -536,16 +536,15 @@
     style F fill:#a5d6a7
 </div>
 <h2 id="quick-commands">Quick Commands</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># Network management</span>
-</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>virsh<span class="w"> </span>net-list
-</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>virsh<span class="w"> </span>net-define<span class="w"> </span>network.xml
-</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>virsh<span class="w"> </span>net-start<span class="w"> </span>&lt;network-name&gt;
-</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="c1"># Bridge commands</span>
-</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>brctl<span class="w"> </span>show
-</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>brctl<span class="w"> </span>addbr<span class="w"> </span>br0
-</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a>brctl<span class="w"> </span>delbr<span class="w"> </span>br0
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Network management
+virsh net-list
+virsh net-define network.xml
+virsh net-start &lt;network-name&gt;
+
+# Bridge commands
+brctl show
+brctl addbr br0
+brctl delbr br0</code></pre>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
