@@ -1,5 +1,5 @@
-# MkDocs build directory
-/site/
+# MkDocs build directory - not ignored since we commit it for GitHub Pages
+# site/
 
 # Python
 __pycache__/

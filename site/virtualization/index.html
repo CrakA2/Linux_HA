@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<script>
+        // for search plugin notably
+        const base_url = "None";
+    </script>
+<script>
+    const darkTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    darkTheme.onchange = (e) => {
+        if (e.matches) {
+            document.documentElement.classList.add("dark")
+            localStorage.theme = 'dark';
+        } else {
+            document.documentElement.classList.remove("dark")
+            localStorage.removeItem("theme")
+        }
+    };
+
+    // On page load. Priotiry to lcaolStorage
+    if (localStorage.theme === "dark") {
+        document.documentElement.classList.add("dark")
+    } else if (localStorage.theme === "light") {
+        document.documentElement.classList.remove("dark")
+    } else if (darkTheme.matches) {
+        document.documentElement.classList.add("dark")
+    } else {
+        document.documentElement.classList.remove("dark")
+    }
+
+    // set the layout based on localStorage
+    document.documentElement.classList.add(localStorage.getItem("html-layout") || "layout-fixed");
+</script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Overview - Linux HA and Virtualization</title>
+<title>Overview</title>
+<!-- Open Graph (Facebook, LinkedIn) -->
+<meta content="Overview" property="og:title"/>
+<!-- Twitter Card -->
+<meta content="Overview" name="twitter:title"/>
+<!-- JSON-LD Structured Data -->
+<link href="../img/favicon.ico" rel="icon"/>
+<link href="../css/base.css" rel="stylesheet"/>
+<link href="../css/geist.css" rel="stylesheet"/>
+<script src="../js/callbacks.js"></script>
+</head>
+<body class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
+<div class="bg-background relative z-10 flex min-h-svh flex-col" id="inner-body">
+<header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
+<div class="container-wrapper 3xl:fixed:px-0 px-6">
+<div class="3xl:fixed:container flex h-(--header-height) items-center gap-2 **:data-[slot=separator]:!h-4">
+<button aria-controls="radix-«Rmplb»" aria-expanded="false" aria-haspopup="dialog" class="group whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground px-4 py-2 has-[&gt;svg]:px-3 extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent flex lg:hidden" data-slot="popover-trigger" data-state="closed" id="menu-button" onclick="onMobileMenuButtonClick(event)" type="button">
+<div class="relative flex h-8 w-4 items-center justify-center">
+<div class="relative size-4">
+<!-- 16px x 16px -->
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<line class="group-data-[state=open]:translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:rotate-45 transition-all duration-300 origin-center" x1="0" x2="16" y1="5" y2="5"></line>
+<line class="group-data-[state=open]:-translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:-rotate-45 transition-all duration-300 origin-center" x1="0" x2="16" y1="11" y2="11"></line>
+</svg>
+</div>
+<span class="sr-only">Toggle Menu</span>
+</div>
+<span class="flex h-8 items-center text-lg leading-none font-medium">Menu</span>
+</button>
+<a class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-5 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hidden h-8 lg:flex" data-slot="button" href="None">
+<span class="size-8 flex flex-row justify-center items-center">
+<svg class="size-5" viewbox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+<rect fill="none" height="256" width="256"></rect>
+<line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" x1="208" x2="128" y1="128" y2="208"></line>
+<line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" x1="192" x2="40" y1="40" y2="192"></line>
+</svg>
+</span>
+<h1 class="pr-2">Linux HA and Virtualization</h1>
+</a>
+<div class="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+<div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+<button aria-controls="radix-«R66plb»" aria-expanded="false" aria-haspopup="dialog" class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-secondary/80 px-4 py-2 has-[&gt;svg]:px-3 bg-surface text-surface-foreground/60 dark:bg-card relative h-8 w-full justify-start pl-2.5 font-normal shadow-none sm:pr-12 md:w-40 lg:w-56 xl:w-64" data-slot="dialog-trigger" data-state="closed" onclick="onSearchBarClick(event)" type="button">
+<span class="text-muted-foreground hidden lg:inline-flex">Search documentation...</span>
+<span class="text-muted-foreground inline-flex lg:hidden">Search...</span>
+<div class="absolute top-1.5 right-1.5 hidden gap-1 sm:flex">
+<kbd class="bg-background text-muted-foreground pointer-events-none flex h-5 items-center justify-center gap-1 rounded border px-1 font-sans text-[0.7rem] font-medium select-none [&amp;_svg:not([class*='size-'])]:size-3">Ctrl</kbd><kbd class="bg-background text-muted-foreground pointer-events-none flex h-5 items-center justify-center gap-1 rounded border px-1 font-sans text-[0.7rem] font-medium select-none [&amp;_svg:not([class*='size-'])]:size-3 aspect-square">K</kbd>
+</div>
+</button>
+<dialog class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background rounded-lg shadow-lg border overflow-hidden p-0" id="search-dialog" onclick="onSearchDialogClick(event)">
+<div class="w-lg gap-4">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
+<div class="flex h-9 items-center gap-2 border-b px-3" data-slot="command-input-wrapper"><svg class="lucide lucide-search size-4 shrink-0 opacity-50" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<circle cx="11" cy="11" r="8"></circle>
+<path d="m21 21-4.3-4.3"></path>
+</svg>
+<input aria-activedescendant="radix-«r1th»" aria-autocomplete="list" aria-controls="radix-«r1t6»" aria-expanded="true" aria-labelledby="radix-«r1t7»" autocomplete="off" autocorrect="off" class="placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50" cmdk-input="" data-slot="command-input" id="radix-«r1t8»" oninput="onInputHandler(event)" placeholder="Search documentation..." role="combobox" spellcheck="false" type="text" value=""/>
+</div>
+</div>
+<div id="mkdocs-search-results">
+<!-- search results go there -->
+</div>
+</div>
+</dialog>
+<script>
+    document.removeEventListener("keydown", searchShortcutHandler);
+    document.addEventListener("keydown", searchShortcutHandler);
+</script>
+</div>
+<div class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px ml-2 hidden lg:block" data-orientation="vertical" data-slot="separator" role="none">
+</div>
+<a class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 h-8 shadow-none" data-slot="button" href="https://github.com/CrakA2/Linux_HA" rel="noreferrer" target="_blank">
+<svg viewbox="0 0 438.549 438.549">
+<path d="M409.132 114.573c-19.608-33.596-46.205-60.194-79.798-79.8-33.598-19.607-70.277-29.408-110.063-29.408-39.781 0-76.472 9.804-110.063 29.408-33.596 19.605-60.192 46.204-79.8 79.8C9.803 148.168 0 184.854 0 224.63c0 47.78 13.94 90.745 41.827 128.906 27.884 38.164 63.906 64.572 108.063 79.227 5.14.954 8.945.283 11.419-1.996 2.475-2.282 3.711-5.14 3.711-8.562 0-.571-.049-5.708-.144-15.417a2549.81 2549.81 0 01-.144-25.406l-6.567 1.136c-4.187.767-9.469 1.092-15.846 1-6.374-.089-12.991-.757-19.842-1.999-6.854-1.231-13.229-4.086-19.13-8.559-5.898-4.473-10.085-10.328-12.56-17.556l-2.855-6.57c-1.903-4.374-4.899-9.233-8.992-14.559-4.093-5.331-8.232-8.945-12.419-10.848l-1.999-1.431c-1.332-.951-2.568-2.098-3.711-3.429-1.142-1.331-1.997-2.663-2.568-3.997-.572-1.335-.098-2.43 1.427-3.289 1.525-.859 4.281-1.276 8.28-1.276l5.708.853c3.807.763 8.516 3.042 14.133 6.851 5.614 3.806 10.229 8.754 13.846 14.842 4.38 7.806 9.657 13.754 15.846 17.847 6.184 4.093 12.419 6.136 18.699 6.136 6.28 0 11.704-.476 16.274-1.423 4.565-.952 8.848-2.383 12.847-4.285 1.713-12.758 6.377-22.559 13.988-29.41-10.848-1.14-20.601-2.857-29.264-5.14-8.658-2.286-17.605-5.996-26.835-11.14-9.235-5.137-16.896-11.516-22.985-19.126-6.09-7.614-11.088-17.61-14.987-29.979-3.901-12.374-5.852-26.648-5.852-42.826 0-23.035 7.52-42.637 22.557-58.817-7.044-17.318-6.379-36.732 1.997-58.24 5.52-1.715 13.706-.428 24.554 3.853 10.85 4.283 18.794 7.952 23.84 10.994 5.046 3.041 9.089 5.618 12.135 7.708 17.705-4.947 35.976-7.421 54.818-7.421s37.117 2.474 54.823 7.421l10.849-6.849c7.419-4.57 16.18-8.758 26.262-12.565 10.088-3.805 17.802-4.853 23.134-3.138 8.562 21.509 9.325 40.922 2.279 58.24 15.036 16.18 22.559 35.787 22.559 58.817 0 16.178-1.958 30.497-5.853 42.966-3.9 12.471-8.941 22.457-15.125 29.979-6.191 7.521-13.901 13.85-23.131 18.986-9.232 5.14-18.182 8.85-26.84 11.136-8.662 2.286-18.415 4.004-29.263 5.146 9.894 8.562 14.842 22.077 14.842 40.539v60.237c0 3.422 1.19 6.279 3.572 8.562 2.379 2.279 6.136 2.95 11.276 1.995 44.163-14.653 80.185-41.062 108.068-79.226 27.88-38.161 41.825-81.126 41.825-128.906-.01-39.771-9.818-76.454-29.414-110.049z" fill="currentColor">
+</path>
+</svg>
+</a>
+<div class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px 3xl:flex hidden" data-orientation="vertical" data-slot="separator" role="none">
+</div>
+<button class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-8 3xl:flex hidden" data-slot="button" onclick="toggleLayout(event)" title="Toggle layout">
+<span class="sr-only">Toggle layout</span>
+<svg class="lucide lucide-gallery-horizontal" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M2 3v18"></path>
+<rect height="18" rx="2" width="12" x="6" y="3"></rect>
+<path d="M22 3v18"></path>
+</svg>
+</button>
+<div class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px" data-orientation="vertical" data-slot="separator" role="none">
+</div>
+<button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 group/toggle extend-touch-target size-8" data-slot="button" onclick="onThemeSwitch(event)" title="Toggle theme">
+<svg class="size-4.5" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 0h24v24H0z" fill="none" stroke="none"></path>
+<path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+<path d="M12 3l0 18"></path>
+<path d="M12 9l4.65 -4.65"></path>
+<path d="M12 14.3l7.37 -7.37"></path>
+<path d="M12 19.6l8.85 -8.85"></path>
+</svg>
+<span class="sr-only">Toggle theme</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="flex flex-1 flex-col">
+<div class="container-wrapper flex flex-1 flex-col px-2">
+<div class="group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex w-full 3xl:fixed:container 3xl:fixed:px-3 min-h-min flex-1 items-start px-0 [--sidebar-width:220px] [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--sidebar-width:240px] lg:[--top-spacing:calc(var(--spacing)*4)]" data-slot="sidebar-wrapper" style="--sidebar-width: 16rem; --sidebar-width-icon: 3rem;">
+<div class="text-sidebar-foreground w-(--sidebar-width) flex-col sticky top-[calc(var(--header-height)+1px)] z-30 hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] bg-transparent lg:flex" data-slot="sidebar">
+<div class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden no-scrollbar px-2 pb-12" data-sidebar="content" data-slot="sidebar-content">
+<div class="h-(--top-spacing) shrink-0"></div>
+<div class="relative flex w-full min-w-0 flex-col p-2 no-scrollbar" data-sidebar="group" data-slot="sidebar-group" view-transition-name="sidebar">
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Home
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Reference
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Deployment
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Resources
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        License
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium" data-sidebar="group-label" data-slot="sidebar-group-label">
+            Cluster Technologies</div>
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Corosync
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Pacemaker
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium" data-sidebar="group-label" data-slot="sidebar-group-label">
+            Virtualization</div>
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="true" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        QEMU
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        KVM
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        libvirt
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        virsh
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Open vSwitch
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium" data-sidebar="group-label" data-slot="sidebar-group-label">
+            Storage</div>
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        CEPH
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        iSCSI
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        NVMe-oF
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        GFS2
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium" data-sidebar="group-label" data-slot="sidebar-group-label">
+            Network</div>
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="None">
+
+        
+        libvirt Networking
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="h-full w-full">
+<div class="flex items-stretch text-[1.05rem] sm:text-[15px] xl:w-full" data-slot="docs">
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="h-(--top-spacing) shrink-0"></div>
+<article class="w-full" view-transition-name="page">
+<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-2">
+<div class="flex items-start justify-between" id="page-header">
+<h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
+          Overview
+        </h1>
+<div class="flex items-center gap-2 pt-1.5">
+<button class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&amp;&gt;svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]" data-slot="button" onclick="fetch(`/virtualization/index.md`).then((r) =&gt; r.blob()).then((blob) =&gt; navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))">
+<svg class="tabler-icon tabler-icon-copy" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z"></path><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"></path>
+</svg>
+<span class="max-md:hidden">Copy Page</span>
+</button>
+<a class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7" data-slot="button" href="None" id="previous-button">
+<svg class="tabler-icon tabler-icon-arrow-left" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 12l14 0"></path>
+<path d="M5 12l6 6"></path>
+<path d="M5 12l6 -6"></path>
+</svg>
+<span class="sr-only">Previous</span>
+</a>
+<a class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7" data-slot="button" href="None" id="next-button">
+<span class="sr-only">Next</span>
+<svg class="tabler-icon tabler-icon-arrow-right" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 12l14 0"></path>
+<path d="M13 18l6 -6"></path>
+<path d="M13 6l6 6"></path>
+</svg>
+</a>
+</div>
+</div>
+</div>
+<div class="flex justify-end items-center">
+</div>
+</div>
+<div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+<p>Complete reference guide for QEMU, KVM, libvirt, virsh, and Open vSwitch virtualization technologies.</p>
+<h2 id="qemu">QEMU</h2>
+<p>Generic and open source machine emulator providing full-system and user-mode emulation.</p>
+<h3 id="architecture">Architecture</h3>
+<div class="mermaid">graph TB
+    A[QEMU Process] --&gt; B[VCPU Threads]
+    A --&gt; C[IO Thread]
+    A --&gt; D[Timer Thread]
+    B --&gt; E[TCG Translator]
+    B --&gt; F[KVM Acceleration]
+    E --&gt; G[Dynamic Binary Translation]
+    F --&gt; H[VM Exit/Entry]
+</div>
+<h3 id="key-features">Key Features</h3>
+<ul>
+<li>Full-system emulation (x86, ARM, PowerPC, etc.)</li>
+<li>User-mode emulation</li>
+<li>TCG dynamic translation</li>
+<li>KVM integration for hardware acceleration</li>
+<li>Device emulation (network, storage, graphics)</li>
+</ul>
+<h3 id="quick-commands">Quick Commands</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># Create VM</span>
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>qemu-system-x86_64<span class="w"> </span>-name<span class="w"> </span>vm1<span class="w"> </span>-m<span class="w"> </span><span class="m">2048</span><span class="w"> </span>-smp<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="w">    </span>-drive<span class="w"> </span><span class="nv">file</span><span class="o">=</span>disk.qcow2,format<span class="o">=</span>qcow2<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="w">    </span>-netdev<span class="w"> </span>user,id<span class="o">=</span>net0,hostfwd<span class="o">=</span>tcp::2222-:22
+</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="c1"># Enable KVM</span>
+</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>qemu-system-x86_64<span class="w"> </span>-enable-kvm<span class="w"> </span>-name<span class="w"> </span>vm1<span class="w"> </span>-m<span class="w"> </span><span class="m">4096</span><span class="w"> </span>-smp<span class="w"> </span><span class="m">4</span>
+</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="c1"># Disk management</span>
+</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a>qemu-img<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>qcow2<span class="w"> </span>disk.qcow2<span class="w"> </span>20G
+</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a>qemu-img<span class="w"> </span>info<span class="w"> </span>disk.qcow2
+</span><span id="__span-0-12"><a href="#__codelineno-0-12" id="__codelineno-0-12" name="__codelineno-0-12"></a>qemu-img<span class="w"> </span>resize<span class="w"> </span>disk.qcow2<span class="w"> </span>+10G
+</span></code></pre></div>
+<h3 id="source-code">Source Code</h3>
+<ul>
+<li><strong>Repository</strong>: <a href="https://gitlab.com/qemu-project/qemu">qemu-project/qemu</a></li>
+<li><strong>Documentation</strong>: <a href="https://www.qemu.org/documentation/">qemu.org</a></li>
+</ul>
+<hr/>
+<h2 id="kvm">KVM</h2>
+<p>Kernel-based virtual machine providing hardware-assisted virtualization.</p>
+<h3 id="architecture_1">Architecture</h3>
+<div class="mermaid">graph TB
+    A[KVM Module] --&gt; B[VMX/SVM Support]
+    A --&gt; C[KVM Kernel Modules]
+    B --&gt; D[QEMU Userspace]
+    C --&gt; E[Virtual Machine Monitor]
+    E --&gt; F[Guest VM]
+</div>
+<h3 id="key-features_1">Key Features</h3>
+<ul>
+<li>Hardware virtualization (Intel VT-x, AMD-V)</li>
+<li>Near-native performance</li>
+<li>EPT/NPT memory management</li>
+<li>Virtio I/O virtualization</li>
+<li>Live migration support</li>
+</ul>
+<h3 id="quick-commands_1">Quick Commands</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="c1"># Check support</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>lscpu<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>Virtualization
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a>egrep<span class="w"> </span>-c<span class="w"> </span><span class="s1">'(vmx|svm)'</span><span class="w"> </span>/proc/cpuinfo
+</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="c1"># Load modules</span>
+</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a>modprobe<span class="w"> </span>kvm-intel<span class="w">  </span><span class="c1"># Intel</span>
+</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a>modprobe<span class="w"> </span>kvm-amd<span class="w">    </span><span class="c1"># AMD</span>
+</span><span id="__span-1-8"><a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a href="#__codelineno-1-9" id="__codelineno-1-9" name="__codelineno-1-9"></a><span class="c1"># Verify</span>
+</span><span id="__span-1-10"><a href="#__codelineno-1-10" id="__codelineno-1-10" name="__codelineno-1-10"></a>kvm-ok
+</span></code></pre></div>
+<h3 id="source-code_1">Source Code</h3>
+<ul>
+<li><strong>Location</strong>: <code>virt/kvm/</code> in Linux kernel</li>
+<li><strong>Repository</strong>: <a href="https://github.com/torvalds/linux/tree/master/virt/kvm">torvalds/linux</a></li>
+<li><strong>Documentation</strong>: <a href="https://www.linux-kvm.org/">linux-kvm.org</a></li>
+</ul>
+<hr/>
+<h2 id="libvirt">libvirt</h2>
+<p>Virtualization API and daemon for managing virtualization capabilities.</p>
+<h3 id="architecture_2">Architecture</h3>
+<div class="mermaid">graph TB
+    A[libvirtd Daemon] --&gt; B[QEMU/KVM]
+    A --&gt; C[LXC Containers]
+    A --&gt; D[Xen]
+    E[Management Tools] --&gt; F[virsh CLI]
+    E --&gt; G[virt-manager GUI]
+    F --&gt; A
+    G --&gt; A
+</div>
+<h3 id="key-features_2">Key Features</h3>
+<ul>
+<li>Unified API for multiple hypervisors</li>
+<li>XML-based VM configuration</li>
+<li>Network and storage management</li>
+<li>Live migration support</li>
+<li>Secure API with authentication</li>
+</ul>
+<h3 id="quick-commands_2">Quick Commands</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="c1"># List VMs</span>
+</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>virsh<span class="w"> </span>list<span class="w"> </span>--all
+</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="c1"># VM operations</span>
+</span><span id="__span-2-5"><a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a>virsh<span class="w"> </span>start<span class="w"> </span>vm1
+</span><span id="__span-2-6"><a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a>virsh<span class="w"> </span>shutdown<span class="w"> </span>vm1
+</span><span id="__span-2-7"><a href="#__codelineno-2-7" id="__codelineno-2-7" name="__codelineno-2-7"></a>virsh<span class="w"> </span>destroy<span class="w"> </span>vm1
+</span><span id="__span-2-8"><a href="#__codelineno-2-8" id="__codelineno-2-8" name="__codelineno-2-8"></a>virsh<span class="w"> </span>dumpxml<span class="w"> </span>vm1
+</span><span id="__span-2-9"><a href="#__codelineno-2-9" id="__codelineno-2-9" name="__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a href="#__codelineno-2-10" id="__codelineno-2-10" name="__codelineno-2-10"></a><span class="c1"># Network management</span>
+</span><span id="__span-2-11"><a href="#__codelineno-2-11" id="__codelineno-2-11" name="__codelineno-2-11"></a>virsh<span class="w"> </span>net-list
+</span><span id="__span-2-12"><a href="#__codelineno-2-12" id="__codelineno-2-12" name="__codelineno-2-12"></a>virsh<span class="w"> </span>net-define<span class="w"> </span>network.xml
+</span><span id="__span-2-13"><a href="#__codelineno-2-13" id="__codelineno-2-13" name="__codelineno-2-13"></a>virsh<span class="w"> </span>net-start<span class="w"> </span>default
+</span></code></pre></div>
+<h3 id="source-code_2">Source Code</h3>
+<ul>
+<li><strong>Repository</strong>: <a href="https://gitlab.com/libvirt/libvirt">libvirt/libvirt</a></li>
+<li><strong>Documentation</strong>: <a href="https://libvirt.org/docs/">libvirt.org</a></li>
+</ul>
+<hr/>
+<h2 id="virsh">virsh</h2>
+<p>Command-line interface for managing libvirt virtualization.</p>
+<h3 id="quick-commands_3">Quick Commands</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="c1"># VM Management</span>
+</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a>virsh<span class="w"> </span>list<span class="w">                   </span><span class="c1"># List running VMs</span>
+</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a>virsh<span class="w"> </span>list<span class="w"> </span>--all<span class="w">            </span><span class="c1"># List all VMs</span>
+</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a>virsh<span class="w"> </span>start<span class="w"> </span>&lt;vm-name&gt;<span class="w">        </span><span class="c1"># Start VM</span>
+</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a>virsh<span class="w"> </span>shutdown<span class="w"> </span>&lt;vm-name&gt;<span class="w">     </span><span class="c1"># Shutdown VM</span>
+</span><span id="__span-3-6"><a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a>virsh<span class="w"> </span>destroy<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># Force stop VM</span>
+</span><span id="__span-3-7"><a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a>virsh<span class="w"> </span>undefine<span class="w"> </span>&lt;vm-name&gt;<span class="w">    </span><span class="c1"># Remove VM</span>
+</span><span id="__span-3-8"><a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a href="#__codelineno-3-9" id="__codelineno-3-9" name="__codelineno-3-9"></a><span class="c1"># VM Information</span>
+</span><span id="__span-3-10"><a href="#__codelineno-3-10" id="__codelineno-3-10" name="__codelineno-3-10"></a>virsh<span class="w"> </span>dominfo<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># Domain info</span>
+</span><span id="__span-3-11"><a href="#__codelineno-3-11" id="__codelineno-3-11" name="__codelineno-3-11"></a>virsh<span class="w"> </span>dumpxml<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># XML config</span>
+</span><span id="__span-3-12"><a href="#__codelineno-3-12" id="__codelineno-3-12" name="__codelineno-3-12"></a>virsh<span class="w"> </span>vcpuinfo<span class="w"> </span>&lt;vm-name&gt;<span class="w">     </span><span class="c1"># VCPU info</span>
+</span><span id="__span-3-13"><a href="#__codelineno-3-13" id="__codelineno-3-13" name="__codelineno-3-13"></a>virsh<span class="w"> </span>dommemstat<span class="w"> </span>&lt;vm-name&gt;<span class="w">   </span><span class="c1"># Memory stats</span>
+</span><span id="__span-3-14"><a href="#__codelineno-3-14" id="__codelineno-3-14" name="__codelineno-3-14"></a>
+</span><span id="__span-3-15"><a href="#__codelineno-3-15" id="__codelineno-3-15" name="__codelineno-3-15"></a><span class="c1"># Snapshot Management</span>
+</span><span id="__span-3-16"><a href="#__codelineno-3-16" id="__codelineno-3-16" name="__codelineno-3-16"></a>virsh<span class="w"> </span>snapshot-create<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span>&lt;snap-name&gt;
+</span><span id="__span-3-17"><a href="#__codelineno-3-17" id="__codelineno-3-17" name="__codelineno-3-17"></a>virsh<span class="w"> </span>snapshot-list<span class="w"> </span>&lt;vm-name&gt;
+</span><span id="__span-3-18"><a href="#__codelineno-3-18" id="__codelineno-3-18" name="__codelineno-3-18"></a>virsh<span class="w"> </span>snapshot-revert<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span>&lt;snap-name&gt;
+</span><span id="__span-3-19"><a href="#__codelineno-3-19" id="__codelineno-3-19" name="__codelineno-3-19"></a>
+</span><span id="__span-3-20"><a href="#__codelineno-3-20" id="__codelineno-3-20" name="__codelineno-3-20"></a><span class="c1"># Console Access</span>
+</span><span id="__span-3-21"><a href="#__codelineno-3-21" id="__codelineno-3-21" name="__codelineno-3-21"></a>virsh<span class="w"> </span>console<span class="w"> </span>&lt;vm-name&gt;
+</span><span id="__span-3-22"><a href="#__codelineno-3-22" id="__codelineno-3-22" name="__codelineno-3-22"></a>virsh<span class="w"> </span>qemu-monitor-command<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span><span class="s2">"info status"</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="open-vswitch">Open vSwitch</h2>
+<p>Open source multilayer virtual switch for managing VM networking.</p>
+<h3 id="architecture_3">Architecture</h3>
+<div class="mermaid">graph TB
+    A[VM1 eth0] --&gt; B[OVS Bridge br0]
+    C[VM2 eth0] --&gt; B
+    D[VM3 eth0] --&gt; B
+    B --&gt; E[OVS Database]
+    E --&gt; F[Controller]
+    G[Host eth0] --&gt; H[OVS Bridge br0]
+    I[Management Tools] --&gt; E
+</div>
+<h3 id="key-features_3">Key Features</h3>
+<ul>
+<li>Standard Linux bridge compatibility</li>
+<li>Flow-based switching</li>
+<li>VLAN isolation</li>
+<li>Bonding and trunking support</li>
+<li>Remote management protocol</li>
+</ul>
+<h3 id="quick-commands_4">Quick Commands</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="c1"># Bridge Management</span>
+</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>ovs-vsctl<span class="w"> </span>add-br<span class="w"> </span>br0
+</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a>ovs-vsctl<span class="w"> </span>del-br<span class="w"> </span>br0
+</span><span id="__span-4-4"><a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a>ovs-vsctl<span class="w"> </span>list-br
+</span><span id="__span-4-5"><a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a href="#__codelineno-4-6" id="__codelineno-4-6" name="__codelineno-4-6"></a><span class="c1"># Port Management</span>
+</span><span id="__span-4-7"><a href="#__codelineno-4-7" id="__codelineno-4-7" name="__codelineno-4-7"></a>ovs-vsctl<span class="w"> </span>add-port<span class="w"> </span>br0<span class="w"> </span>eth0
+</span><span id="__span-4-8"><a href="#__codelineno-4-8" id="__codelineno-4-8" name="__codelineno-4-8"></a>ovs-vsctl<span class="w"> </span>del-port<span class="w"> </span>br0<span class="w"> </span>eth0
+</span><span id="__span-4-9"><a href="#__codelineno-4-9" id="__codelineno-4-9" name="__codelineno-4-9"></a>ovs-vsctl<span class="w"> </span>list-ports<span class="w"> </span>br0
+</span><span id="__span-4-10"><a href="#__codelineno-4-10" id="__codelineno-4-10" name="__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a href="#__codelineno-4-11" id="__codelineno-4-11" name="__codelineno-4-11"></a><span class="c1"># Configuration</span>
+</span><span id="__span-4-12"><a href="#__codelineno-4-12" id="__codelineno-4-12" name="__codelineno-4-12"></a>ovs-vsctl<span class="w"> </span>show
+</span><span id="__span-4-13"><a href="#__codelineno-4-13" id="__codelineno-4-13" name="__codelineno-4-13"></a>ovs-ofctl<span class="w"> </span>show<span class="w"> </span>br0
+</span><span id="__span-4-14"><a href="#__codelineno-4-14" id="__codelineno-4-14" name="__codelineno-4-14"></a>ovs-vsctls<span class="w"> </span>show
+</span></code></pre></div>
+<h3 id="source-code_3">Source Code</h3>
+<ul>
+<li><strong>Repository</strong>: <a href="https://github.com/openvswitch/ovs">openvswitch/ovs</a></li>
+<li><strong>Documentation</strong>: <a href="https://docs.openvswitch.org/">openvswitch.org</a></li>
+</ul>
+<hr/>
+<h2 id="deployment-workflow">Deployment Workflow</h2>
+<h3 id="1-hardware-verification">1. Hardware Verification</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="c1"># Check virtualization support</span>
+</span><span id="__span-5-2"><a href="#__codelineno-5-2" id="__codelineno-5-2" name="__codelineno-5-2"></a>lscpu<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>Virtualization
+</span><span id="__span-5-3"><a href="#__codelineno-5-3" id="__codelineno-5-3" name="__codelineno-5-3"></a>egrep<span class="w"> </span>-c<span class="w"> </span><span class="s1">'(vmx|svm)'</span><span class="w"> </span>/proc/cpuinfo
+</span></code></pre></div>
+<h3 id="2-software-installation">2. Software Installation</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a href="#__codelineno-6-1" id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="c1"># Install packages</span>
+</span><span id="__span-6-2"><a href="#__codelineno-6-2" id="__codelineno-6-2" name="__codelineno-6-2"></a>apt-get<span class="w"> </span>install<span class="w"> </span>qemu-kvm<span class="w"> </span>libvirt-daemon-system<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-3"><a href="#__codelineno-6-3" id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="w">    </span>libvirt-clients<span class="w"> </span>virt-manager<span class="w"> </span>openvswitch
+</span><span id="__span-6-4"><a href="#__codelineno-6-4" id="__codelineno-6-4" name="__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a href="#__codelineno-6-5" id="__codelineno-6-5" name="__codelineno-6-5"></a><span class="c1"># Enable services</span>
+</span><span id="__span-6-6"><a href="#__codelineno-6-6" id="__codelineno-6-6" name="__codelineno-6-6"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>libvirtd
+</span><span id="__span-6-7"><a href="#__codelineno-6-7" id="__codelineno-6-7" name="__codelineno-6-7"></a>systemctl<span class="w"> </span>start<span class="w"> </span>libvirtd
+</span><span id="__span-6-8"><a href="#__codelineno-6-8" id="__codelineno-6-8" name="__codelineno-6-8"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>openvswitch
+</span><span id="__span-6-9"><a href="#__codelineno-6-9" id="__codelineno-6-9" name="__codelineno-6-9"></a>systemctl<span class="w"> </span>start<span class="w"> </span>openvswitch
+</span><span id="__span-6-10"><a href="#__codelineno-6-10" id="__codelineno-6-10" name="__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a href="#__codelineno-6-11" id="__codelineno-6-11" name="__codelineno-6-11"></a><span class="c1"># Verify</span>
+</span><span id="__span-6-12"><a href="#__codelineno-6-12" id="__codelineno-6-12" name="__codelineno-6-12"></a>virsh<span class="w"> </span>version
+</span><span id="__span-6-13"><a href="#__codelineno-6-13" id="__codelineno-6-13" name="__codelineno-6-13"></a>ovs-vsctl<span class="w"> </span>show
+</span></code></pre></div>
+<h3 id="3-network-setup">3. Network Setup</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a href="#__codelineno-7-1" id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="c1"># Create OVS bridge</span>
+</span><span id="__span-7-2"><a href="#__codelineno-7-2" id="__codelineno-7-2" name="__codelineno-7-2"></a>ovs-vsctl<span class="w"> </span>add-br<span class="w"> </span>br0
+</span><span id="__span-7-3"><a href="#__codelineno-7-3" id="__codelineno-7-3" name="__codelineno-7-3"></a>ovs-vsctl<span class="w"> </span>add-port<span class="w"> </span>br0<span class="w"> </span>eth0
+</span><span id="__span-7-4"><a href="#__codelineno-7-4" id="__codelineno-7-4" name="__codelineno-7-4"></a>ovs-vsctl<span class="w"> </span>add-port<span class="w"> </span>br0<span class="w"> </span>eth1
+</span></code></pre></div>
+<h3 id="4-create-vm">4. Create VM</h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="c1"># Using virt-install</span>
+</span><span id="__span-8-2"><a href="#__codelineno-8-2" id="__codelineno-8-2" name="__codelineno-8-2"></a>virt-install<span class="w"> </span>--name<span class="w"> </span>vm1<span class="w"> </span>--memory<span class="w"> </span><span class="m">2048</span><span class="w"> </span>--vcpus<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-3"><a href="#__codelineno-8-3" id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="w">    </span>--disk<span class="w"> </span><span class="nv">path</span><span class="o">=</span>/var/lib/libvirt/images/vm1.qcow2,size<span class="o">=</span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-4"><a href="#__codelineno-8-4" id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="w">    </span>--network<span class="w"> </span><span class="nv">bridge</span><span class="o">=</span>br0
+</span><span id="__span-8-5"><a href="#__codelineno-8-5" id="__codelineno-8-5" name="__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a href="#__codelineno-8-6" id="__codelineno-8-6" name="__codelineno-8-6"></a><span class="c1"># Or using virsh</span>
+</span><span id="__span-8-7"><a href="#__codelineno-8-7" id="__codelineno-8-7" name="__codelineno-8-7"></a>virsh<span class="w"> </span>define<span class="w"> </span>vm1.xml
+</span><span id="__span-8-8"><a href="#__codelineno-8-8" id="__codelineno-8-8" name="__codelineno-8-8"></a>virsh<span class="w"> </span>start<span class="w"> </span>vm1
+</span></code></pre></div>
+<hr/>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>For in-depth troubleshooting focused on code behavior and diagnostics, see <a href="deployment.md">Deployment</a>.</p>
+<h3 id="common-issues">Common Issues</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VM slow performance</td>
+<td>Enable KVM with <code>-enable-kvm</code></td>
+</tr>
+<tr>
+<td>Network issues</td>
+<td>Check OVS bridges with <code>ovs-vsctl show</code></td>
+</tr>
+<tr>
+<td>Storage issues</td>
+<td>Use virtio drivers for better I/O</td>
+</tr>
+<tr>
+<td>Resource constraints</td>
+<td>Adjust memory/CPU allocation</td>
+</tr>
+</tbody>
+</table></div>
+<hr/>
+<h2 id="security-considerations">Security Considerations</h2>
+<ul>
+<li>Use AppArmor/SELinux profiles</li>
+<li>Use virtio drivers for better isolation</li>
+<li>Enable seccomp filters</li>
+<li>Use IOMMU for device passthrough</li>
+</ul>
+<hr/>
+<h2 id="source-code-references">Source Code References</h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Repository</th>
+<th>Documentation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>QEMU</td>
+<td><a href="https://gitlab.com/qemu-project/qemu">qemu-project/qemu</a></td>
+<td><a href="https://www.qemu.org/documentation/">qemu.org</a></td>
+</tr>
+<tr>
+<td>KVM</td>
+<td><a href="https://github.com/torvalds/linux/tree/master/virt/kvm">torvalds/linux</a></td>
+<td><a href="https://www.linux-kvm.org/">linux-kvm.org</a></td>
+</tr>
+<tr>
+<td>libvirt</td>
+<td><a href="https://gitlab.com/libvirt/libvirt">libvirt/libvirt</a></td>
+<td><a href="https://libvirt.org/docs/">libvirt.org</a></td>
+</tr>
+<tr>
+<td>Open vSwitch</td>
+<td><a href="https://github.com/openvswitch/ovs">openvswitch/ovs</a></td>
+<td><a href="https://docs.openvswitch.org/">openvswitch.org</a></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</article>
+<div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
+<a class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none" data-slot="button" href="None">
+<svg class="tabler-icon tabler-icon-arrow-left" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 12l14 0"></path>
+<path d="M5 12l6 6"></path>
+<path d="M5 12l6 -6"></path>
+</svg>
+<span class="max-[500px]:hidden">Pacemaker</span>
+</a>
+<a class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none" data-slot="button" href="None">
+<span class="max-[500px]:hidden">QEMU</span>
+<svg class="tabler-icon tabler-icon-arrow-right" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 12l14 0"></path>
+<path d="M13 18l6 -6"></path>
+<path d="M13 6l6 6"></path>
+</svg>
+</a>
+</div>
+<dialog class="bg-transparent" id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+<div class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100" data-align="start" data-side="bottom" data-slot="popover-content" data-state="open" role="dialog" style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);" tabindex="-1">
+<div class="flex flex-col gap-12 overflow-auto px-6 py-6">
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Menu</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="..">
+                        
+                        Home
+                        
+                    </a>
+<a class="text-2xl font-medium" href="../reference/">
+                        
+                        Reference
+                        
+                    </a>
+<a class="text-2xl font-medium" href="../deployment/">
+                        
+                        Deployment
+                        
+                    </a>
+<a class="text-2xl font-medium" href="../resources/">
+                        
+                        Resources
+                        
+                    </a>
+<a class="text-2xl font-medium" href="../license/">
+                        
+                        License
+                        
+                    </a>
+</div>
+</div>
+<div class="flex flex-col gap-8">
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Cluster Technologies</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="../cluster/">
+                            
+                            Overview
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../cluster/corosync/">
+                            
+                            Corosync
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../cluster/pacemaker/">
+                            
+                            Pacemaker
+                            
+                        </a>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Virtualization</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="./">
+                            
+                            Overview
+                            
+                        </a>
+<a class="text-2xl font-medium" href="qemu/">
+                            
+                            QEMU
+                            
+                        </a>
+<a class="text-2xl font-medium" href="kvm/">
+                            
+                            KVM
+                            
+                        </a>
+<a class="text-2xl font-medium" href="libvirt/">
+                            
+                            libvirt
+                            
+                        </a>
+<a class="text-2xl font-medium" href="virsh/">
+                            
+                            virsh
+                            
+                        </a>
+<a class="text-2xl font-medium" href="ovs/">
+                            
+                            Open vSwitch
+                            
+                        </a>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Storage</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="../storage/">
+                            
+                            Overview
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../storage/ceph/">
+                            
+                            CEPH
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../storage/iscsi/">
+                            
+                            iSCSI
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../storage/nvme-of/">
+                            
+                            NVMe-oF
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../storage/gfs2/">
+                            
+                            GFS2
+                            
+                        </a>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Network</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="../network/libvirt-network/">
+                            
+                            libvirt Networking
+                            
+                        </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</dialog>
+</div>
+<div class="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] w-72 flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+<div class="h-(--top-spacing) shrink-0"></div>
+<div class="no-scrollbar overflow-y-auto px-8" view-transition-name="toc">
+<div class="flex flex-col gap-2 p-4 pt-0 text-sm">
+<p class="text-muted-foreground bg-background sticky top-0 h-6 text-xs">On This Page</p>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#qemu">
+            QEMU
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#architecture">
+            Architecture
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-features">
+            Key Features
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quick-commands">
+            Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#source-code">
+            Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#kvm">
+            KVM
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#architecture_1">
+            Architecture
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-features_1">
+            Key Features
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quick-commands_1">
+            Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#source-code_1">
+            Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#libvirt">
+            libvirt
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#architecture_2">
+            Architecture
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-features_2">
+            Key Features
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quick-commands_2">
+            Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#source-code_2">
+            Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#virsh">
+            virsh
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quick-commands_3">
+            Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#open-vswitch">
+            Open vSwitch
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#architecture_3">
+            Architecture
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-features_3">
+            Key Features
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quick-commands_4">
+            Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#source-code_3">
+            Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#deployment-workflow">
+            Deployment Workflow
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#1-hardware-verification">
+            1. Hardware Verification
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#2-software-installation">
+            2. Software Installation
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#3-network-setup">
+            3. Network Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#4-create-vm">
+            4. Create VM
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#common-issues">
+            Common Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#security-considerations">
+            Security Considerations
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code-references">
+            Source Code References
+        </a>
+</div>
+<div class="h-12"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent" view-transition-name="footer">
+<div class="container-wrapper px-4 xl:px-6">
+<div class="flex h-(--footer-height) items-center justify-between">
+<div class="text-muted-foreground w-full text-center text-xs leading-loose sm:text-sm">
+                
+                Built by<!-- --> <span>Linux HA Docs</span> —
+                
+                <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn theme</a> provided by
+                <a href="https://github.com/asiffer">@asiffer</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<script src="../search/main.js"></script>
+<script src="../js/copy-button.js"></script>
+<script>updatePygmentsStylesheet();</script>
+<script type="speculationrules">
+{
+  "prerender": [
+    {
+      "where": {
+          "selector_matches": ["#next-button", "#previous-button"],
+      }
+    }
+  ]
+}
+</script>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.6.1/dist/mermaid.esm.min.mjs";
+mermaid.initialize({});</script></body>
+</html>

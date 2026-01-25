@@ -1,0 +1,22 @@
+{
+  "name": "linux-ha-docs",
+  "version": "1.0.0",
+  "description": "Linux High Availability and Virtualization Documentation",
+  "scripts": {
+    "build": "mkdocs build",
+    "serve": "mkdocs serve",
+    "deploy": "mkdocs build && git add site/ && git diff --cached --quiet site/ || git commit -m 'Build site' && git push"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CrakA2/Linux_HA.git"
+  },
+  "keywords": [
+    "linux",
+    "high-availability",
+    "virtualization",
+    "documentation"
+  ],
+  "author": "Linux HA Docs",
+  "license": "MIT"
+}
