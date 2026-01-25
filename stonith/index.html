@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<script>
+        // for search plugin notably
+        const base_url = "https://craka2.github.io/Linux_HA/";
+    </script>
+<script>
+    const darkTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    darkTheme.onchange = (e) => {
+        if (e.matches) {
+            document.documentElement.classList.add("dark")
+            localStorage.theme = 'dark';
+        } else {
+            document.documentElement.classList.remove("dark")
+            localStorage.removeItem("theme")
+        }
+    };
+
+    // On page load. Priotiry to lcaolStorage
+    if (localStorage.theme === "dark") {
+        document.documentElement.classList.add("dark")
+    } else if (localStorage.theme === "light") {
+        document.documentElement.classList.remove("dark")
+    } else if (darkTheme.matches) {
+        document.documentElement.classList.add("dark")
+    } else {
+        document.documentElement.classList.remove("dark")
+    }
+
+    // set the layout based on localStorage
+    document.documentElement.classList.add(localStorage.getItem("html-layout") || "layout-fixed");
+</script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Stonith - Linux HA and Virtualization</title>
+<title>Stonith</title>
+<link href="https://craka2.github.io/Linux_HA/stonith/" rel="canonical"/>
+<!-- Open Graph (Facebook, LinkedIn) -->
+<meta content="Stonith" property="og:title"/>
+<meta content="https://craka2.github.io/Linux_HA/stonith/" property="og:url"/>
+<!-- Twitter Card -->
+<meta content="Stonith" name="twitter:title"/>
+<!-- JSON-LD Structured Data -->
+<link href="../img/favicon.ico" rel="icon"/>
+<link href="../css/base.css" rel="stylesheet"/>
+<link href="../css/geist.css" rel="stylesheet"/>
+<script src="../js/callbacks.js"></script>
+</head>
+<body class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
+<div class="bg-background relative z-10 flex min-h-svh flex-col" id="inner-body">
+<header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
+<div class="container-wrapper 3xl:fixed:px-0 px-6">
+<div class="3xl:fixed:container flex h-(--header-height) items-center gap-2 **:data-[slot=separator]:!h-4">
+<button aria-controls="radix-«Rmplb»" aria-expanded="false" aria-haspopup="dialog" class="group whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground px-4 py-2 has-[&gt;svg]:px-3 extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent flex lg:hidden" data-slot="popover-trigger" data-state="closed" id="menu-button" onclick="onMobileMenuButtonClick(event)" type="button">
+<div class="relative flex h-8 w-4 items-center justify-center">
+<div class="relative size-4">
+<!-- 16px x 16px -->
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<line class="group-data-[state=open]:translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:rotate-45 transition-all duration-300 origin-center" x1="0" x2="16" y1="5" y2="5"></line>
+<line class="group-data-[state=open]:-translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:-rotate-45 transition-all duration-300 origin-center" x1="0" x2="16" y1="11" y2="11"></line>
+</svg>
+</div>
+<span class="sr-only">Toggle Menu</span>
+</div>
+<span class="flex h-8 items-center text-lg leading-none font-medium">Menu</span>
+</button>
+<a class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-5 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hidden h-8 lg:flex" data-slot="button" href="https://craka2.github.io/Linux_HA/">
+<span class="size-8 flex flex-row justify-center items-center">
+<svg class="size-5" viewbox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+<rect fill="none" height="256" width="256"></rect>
+<line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" x1="208" x2="128" y1="128" y2="208"></line>
+<line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" x1="192" x2="40" y1="40" y2="192"></line>
+</svg>
+</span>
+<h1 class="pr-2">Linux HA and Virtualization</h1>
+</a>
+<div class="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+<div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+<button aria-controls="radix-«R66plb»" aria-expanded="false" aria-haspopup="dialog" class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-secondary/80 px-4 py-2 has-[&gt;svg]:px-3 bg-surface text-surface-foreground/60 dark:bg-card relative h-8 w-full justify-start pl-2.5 font-normal shadow-none sm:pr-12 md:w-40 lg:w-56 xl:w-64" data-slot="dialog-trigger" data-state="closed" onclick="onSearchBarClick(event)" type="button">
+<span class="text-muted-foreground hidden lg:inline-flex">Search documentation...</span>
+<span class="text-muted-foreground inline-flex lg:hidden">Search...</span>
+<div class="absolute top-1.5 right-1.5 hidden gap-1 sm:flex">
+<kbd class="bg-background text-muted-foreground pointer-events-none flex h-5 items-center justify-center gap-1 rounded border px-1 font-sans text-[0.7rem] font-medium select-none [&amp;_svg:not([class*='size-'])]:size-3">Ctrl</kbd><kbd class="bg-background text-muted-foreground pointer-events-none flex h-5 items-center justify-center gap-1 rounded border px-1 font-sans text-[0.7rem] font-medium select-none [&amp;_svg:not([class*='size-'])]:size-3 aspect-square">K</kbd>
+</div>
+</button>
+<dialog class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background rounded-lg shadow-lg border overflow-hidden p-0" id="search-dialog" onclick="onSearchDialogClick(event)">
+<div class="w-lg gap-4">
+<div class="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
+<div class="flex h-9 items-center gap-2 border-b px-3" data-slot="command-input-wrapper"><svg class="lucide lucide-search size-4 shrink-0 opacity-50" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<circle cx="11" cy="11" r="8"></circle>
+<path d="m21 21-4.3-4.3"></path>
+</svg>
+<input aria-activedescendant="radix-«r1th»" aria-autocomplete="list" aria-controls="radix-«r1t6»" aria-expanded="true" aria-labelledby="radix-«r1t7»" autocomplete="off" autocorrect="off" class="placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50" cmdk-input="" data-slot="command-input" id="radix-«r1t8»" oninput="onInputHandler(event)" placeholder="Search documentation..." role="combobox" spellcheck="false" type="text" value=""/>
+</div>
+</div>
+<div id="mkdocs-search-results">
+<!-- search results go there -->
+</div>
+</div>
+</dialog>
+<script>
+    document.removeEventListener("keydown", searchShortcutHandler);
+    document.addEventListener("keydown", searchShortcutHandler);
+</script>
+</div>
+<div class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px ml-2 hidden lg:block" data-orientation="vertical" data-slot="separator" role="none">
+</div>
+<a class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 h-8 shadow-none" data-slot="button" href="https://github.com/CrakA2/Linux_HA" rel="noreferrer" target="_blank">
+<svg viewbox="0 0 438.549 438.549">
+<path d="M409.132 114.573c-19.608-33.596-46.205-60.194-79.798-79.8-33.598-19.607-70.277-29.408-110.063-29.408-39.781 0-76.472 9.804-110.063 29.408-33.596 19.605-60.192 46.204-79.8 79.8C9.803 148.168 0 184.854 0 224.63c0 47.78 13.94 90.745 41.827 128.906 27.884 38.164 63.906 64.572 108.063 79.227 5.14.954 8.945.283 11.419-1.996 2.475-2.282 3.711-5.14 3.711-8.562 0-.571-.049-5.708-.144-15.417a2549.81 2549.81 0 01-.144-25.406l-6.567 1.136c-4.187.767-9.469 1.092-15.846 1-6.374-.089-12.991-.757-19.842-1.999-6.854-1.231-13.229-4.086-19.13-8.559-5.898-4.473-10.085-10.328-12.56-17.556l-2.855-6.57c-1.903-4.374-4.899-9.233-8.992-14.559-4.093-5.331-8.232-8.945-12.419-10.848l-1.999-1.431c-1.332-.951-2.568-2.098-3.711-3.429-1.142-1.331-1.997-2.663-2.568-3.997-.572-1.335-.098-2.43 1.427-3.289 1.525-.859 4.281-1.276 8.28-1.276l5.708.853c3.807.763 8.516 3.042 14.133 6.851 5.614 3.806 10.229 8.754 13.846 14.842 4.38 7.806 9.657 13.754 15.846 17.847 6.184 4.093 12.419 6.136 18.699 6.136 6.28 0 11.704-.476 16.274-1.423 4.565-.952 8.848-2.383 12.847-4.285 1.713-12.758 6.377-22.559 13.988-29.41-10.848-1.14-20.601-2.857-29.264-5.14-8.658-2.286-17.605-5.996-26.835-11.14-9.235-5.137-16.896-11.516-22.985-19.126-6.09-7.614-11.088-17.61-14.987-29.979-3.901-12.374-5.852-26.648-5.852-42.826 0-23.035 7.52-42.637 22.557-58.817-7.044-17.318-6.379-36.732 1.997-58.24 5.52-1.715 13.706-.428 24.554 3.853 10.85 4.283 18.794 7.952 23.84 10.994 5.046 3.041 9.089 5.618 12.135 7.708 17.705-4.947 35.976-7.421 54.818-7.421s37.117 2.474 54.823 7.421l10.849-6.849c7.419-4.57 16.18-8.758 26.262-12.565 10.088-3.805 17.802-4.853 23.134-3.138 8.562 21.509 9.325 40.922 2.279 58.24 15.036 16.18 22.559 35.787 22.559 58.817 0 16.178-1.958 30.497-5.853 42.966-3.9 12.471-8.941 22.457-15.125 29.979-6.191 7.521-13.901 13.85-23.131 18.986-9.232 5.14-18.182 8.85-26.84 11.136-8.662 2.286-18.415 4.004-29.263 5.146 9.894 8.562 14.842 22.077 14.842 40.539v60.237c0 3.422 1.19 6.279 3.572 8.562 2.379 2.279 6.136 2.95 11.276 1.995 44.163-14.653 80.185-41.062 108.068-79.226 27.88-38.161 41.825-81.126 41.825-128.906-.01-39.771-9.818-76.454-29.414-110.049z" fill="currentColor">
+</path>
+</svg>
+</a>
+<div class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px 3xl:flex hidden" data-orientation="vertical" data-slot="separator" role="none">
+</div>
+<button class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-8 3xl:flex hidden" data-slot="button" onclick="toggleLayout(event)" title="Toggle layout">
+<span class="sr-only">Toggle layout</span>
+<svg class="lucide lucide-gallery-horizontal" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M2 3v18"></path>
+<rect height="18" rx="2" width="12" x="6" y="3"></rect>
+<path d="M22 3v18"></path>
+</svg>
+</button>
+<div class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px" data-orientation="vertical" data-slot="separator" role="none">
+</div>
+<button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 group/toggle extend-touch-target size-8" data-slot="button" onclick="onThemeSwitch(event)" title="Toggle theme">
+<svg class="size-4.5" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 0h24v24H0z" fill="none" stroke="none"></path>
+<path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+<path d="M12 3l0 18"></path>
+<path d="M12 9l4.65 -4.65"></path>
+<path d="M12 14.3l7.37 -7.37"></path>
+<path d="M12 19.6l8.85 -8.85"></path>
+</svg>
+<span class="sr-only">Toggle theme</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="flex flex-1 flex-col">
+<div class="container-wrapper flex flex-1 flex-col px-2">
+<div class="group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex w-full 3xl:fixed:container 3xl:fixed:px-3 min-h-min flex-1 items-start px-0 [--sidebar-width:220px] [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--sidebar-width:240px] lg:[--top-spacing:calc(var(--spacing)*4)]" data-slot="sidebar-wrapper" style="--sidebar-width: 16rem; --sidebar-width-icon: 3rem;">
+<div class="text-sidebar-foreground w-(--sidebar-width) flex-col sticky top-[calc(var(--header-height)+1px)] z-30 hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] bg-transparent lg:flex" data-slot="sidebar">
+<div class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden no-scrollbar px-2 pb-12" data-sidebar="content" data-slot="sidebar-content">
+<div class="h-(--top-spacing) shrink-0"></div>
+<div class="relative flex w-full min-w-0 flex-col p-2 no-scrollbar" data-sidebar="group" data-slot="sidebar-group" view-transition-name="sidebar">
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/">
+
+        
+        Home
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/reference/">
+
+        
+        Reference
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/deployment/">
+
+        
+        Deployment
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/resources/">
+
+        
+        Resources
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/license/">
+
+        
+        License
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium" data-sidebar="group-label" data-slot="sidebar-group-label">
+            Cluster Technologies</div>
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/cluster/">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/cluster/corosync/">
+
+        
+        Corosync
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/cluster/pacemaker/">
+
+        
+        Pacemaker
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium" data-sidebar="group-label" data-slot="sidebar-group-label">
+            Virtualization</div>
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/virtualization/">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/virtualization/qemu/">
+
+        
+        QEMU
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/virtualization/kvm/">
+
+        
+        KVM
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/virtualization/libvirt/">
+
+        
+        libvirt
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/virtualization/virsh/">
+
+        
+        virsh
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/virtualization/ovs/">
+
+        
+        Open vSwitch
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium" data-sidebar="group-label" data-slot="sidebar-group-label">
+            Storage</div>
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/storage/">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/storage/ceph/">
+
+        
+        CEPH
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/storage/iscsi/">
+
+        
+        iSCSI
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/storage/nvme-of/">
+
+        
+        NVMe-oF
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/storage/gfs2/">
+
+        
+        GFS2
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+<div class="relative flex w-full min-w-0 flex-col p-2" data-sidebar="group" data-slot="sidebar-group">
+<div class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium" data-sidebar="group-label" data-slot="sidebar-group-label">
+            Network</div>
+<div class="w-full text-sm" data-sidebar="group-content" data-slot="sidebar-group-content">
+<ul class="flex w-full min-w-0 flex-col gap-0.5" data-sidebar="menu" data-slot="sidebar-menu">
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/Linux_HA/network/libvirt-network/">
+
+        
+        libvirt Networking
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="h-full w-full">
+<div class="flex items-stretch text-[1.05rem] sm:text-[15px] xl:w-full" data-slot="docs">
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="h-(--top-spacing) shrink-0"></div>
+<article class="w-full" view-transition-name="page">
+<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-2">
+<div class="flex items-start justify-between" id="page-header">
+<h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
+          Stonith
+        </h1>
+<div class="flex items-center gap-2 pt-1.5">
+<button class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&amp;&gt;svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]" data-slot="button" onclick="fetch(`https://craka2.github.io/Linux_HA/stonith.md`).then((r) =&gt; r.blob()).then((blob) =&gt; navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))">
+<svg class="tabler-icon tabler-icon-copy" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z"></path><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"></path>
+</svg>
+<span class="max-md:hidden">Copy Page</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex justify-end items-center">
+</div>
+</div>
+<div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+<p>Comprehensive guide to STONITH (Shoot The Other Node In The Head) and fencing for Linux HA clusters.</p>
+<h2 id="overview">Overview</h2>
+<p>STONITH is the fencing mechanism used by Pacemaker to prevent split-brain scenarios by ensuring failed nodes are properly fenced.</p>
+<div class="mermaid">graph TB
+    subgraph "Cluster Layer"
+        A[Pacemaker]
+        B[STONITH Resources]
+        C[Quorum]
+    end
+
+    subgraph "Fencing Layer"
+        D[Fence Agents]
+        E[Fence Device]
+        F[Network]
+    end
+
+    subgraph "Hardware Layer"
+        G[IPMI/iLO/DRAC]
+        H[Network Switches]
+        I[PDU - Power Distribution Units]
+    end
+
+    subgraph "Cloud Layer"
+        J[AWS EC2]
+        K[OpenStack Nova]
+        L[Azure VM]
+    end
+
+    A --&gt; B
+    A --&gt; C
+
+    B --&gt; D
+    D --&gt; E
+    E --&gt; F
+
+    E --&gt; G
+    E --&gt; H
+    E --&gt; I
+
+    E --&gt; J
+    E --&gt; K
+    E --&gt; L
+
+    style B fill:#c8e6c9
+    style D fill:#ffecb3
+    style G fill:#e1f5ff
+    style J fill:#fff3e0
+</div>
+<h2 id="stonith-architecture">STONITH Architecture</h2>
+<h3 id="fencing-process">Fencing Process</h3>
+<div class="mermaid">sequenceDiagram
+    participant C as Cluster
+    participant S as STONITH Daemon
+    participant F as Fence Agent
+    participant H as Hardware
+
+    C-&gt;&gt;S: Node failure detected
+    S-&gt;&gt;F: Initiate fence
+    F-&gt;&gt;H: Send fence command
+    H-&gt;&gt;H: Execute fence (reboot/poweroff)
+    H-&gt;&gt;F: Fence complete
+    F-&gt;&gt;S: Fence success
+    S-&gt;&gt;C: Node fenced
+    C-&gt;&gt;C: Recover resources
+
+    style S fill:#c8e6c9
+    style F fill:#ffecb3
+    style H fill:#e1f5ff
+</div>
+<h3 id="stonith-components">STONITH Components</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>STONITH Daemon</td>
+<td>Manages fencing operations</td>
+</tr>
+<tr>
+<td>Fence Agents</td>
+<td>Scripts for fencing devices</td>
+</tr>
+<tr>
+<td>Fence Resources</td>
+<td>Cluster resources for fencing</td>
+</tr>
+<tr>
+<td>Fence Levels</td>
+<td>Primary/secondary fencing</td>
+</tr>
+<tr>
+<td>Fence Methods</td>
+<td>Multiple fencing strategies</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="fence-agent-types">Fence Agent Types</h2>
+<h3 id="ipmi-fence-agents">IPMI Fence Agents</h3>
+<p><strong>fence_ipmilan</strong>: Intel IPMI LAN interface</p>
+<pre class="highlight"><code class="language-bash"># Create IPMI fence device
+pcs stonith create fence-ipmi-node1 \
+    fence_ipmilan \
+    ipaddr=192.168.1.201 \
+    login=admin \
+    passwd=AdminPass123 \
+    lanplus=1 \
+    action=reboot \
+    pcmk_host_list=node1</code></pre>
+<p><strong>Parameters</strong>:
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| ipaddr | IPMI IP address | - |
+| login | IPMI username | - |
+| passwd | IPMI password | - |
+| port | IPMI port | 623 |
+| lanplus | Use IPMIv2.0 | 0 |
+| action | Fencing action (reboot/off/on) | reboot |
+| timeout | Timeout in seconds | 20 |
+| cipher | Cipher suite (0-15) | 17 |</p>
+<h3 id="ilo-fence-agents">iLO Fence Agents</h3>
+<p><strong>fence_ilo</strong>: HP iLO fencing</p>
+<pre class="highlight"><code class="language-bash"># Create iLO fence device
+pcs stonith create fence-ilo-node1 \
+    fence_ilo \
+    ipaddr=192.168.1.202 \
+    login=admin \
+    passwd=AdminPass123 \
+    action=reboot \
+    pcmk_host_list=node1</code></pre>
+<p><strong>Parameters</strong>:
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| ipaddr | iLO IP address | - |
+| login | iLO username | - |
+| passwd | iLO password | - |
+| ssl | Use SSL | 1 |
+| port | iLO port | 443 |
+| action | Fencing action | reboot |
+| timeout | Timeout in seconds | 20 |</p>
+<h3 id="drac-fence-agents">DRAC Fence Agents</h3>
+<p><strong>fence_drac5</strong>: Dell DRAC 5 fencing</p>
+<pre class="highlight"><code class="language-bash"># Create DRAC fence device
+pcs stonith create fence-drac-node1 \
+    fence_drac5 \
+    ipaddr=192.168.1.203 \
+    login=root \
+    passwd=AdminPass123 \
+    module=1 \
+    action=reboot \
+    pcmk_host_list=node1</code></pre>
+<p><strong>Parameters</strong>:
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| ipaddr | DRAC IP address | - |
+| login | DRAC username | - |
+| passwd | DRAC password | - |
+| module | DRAC module number | 1 |
+| cmd_prompt | Command prompt | ([A-Za-z0-9])+\s*&gt;? |
+| action | Fencing action | reboot |</p>
+<h3 id="vmware-fence-agents">VMware Fence Agents</h3>
+<p><strong>fence_vmware_soap</strong>: VMware vSphere fencing</p>
+<pre class="highlight"><code class="language-bash"># Create VMware fence device
+pcs stonith create fence-vmware \
+    fence_vmware_soap \
+    ipaddr=192.168.1.210 \
+    login=administrator \
+    passwd=AdminPass123 \
+    ssl=1 \
+    ipport=443 \
+    action=reboot \
+    pcmk_host_list="node1 node2 node3"</code></pre>
+<p><strong>Parameters</strong>:
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| ipaddr | vCenter IP address | - |
+| login | vCenter username | - |
+| passwd | vCenter password | - |
+| ssl | Use SSL | 1 |
+| ipport | vCenter port | 443 |
+| vm_name | VM name pattern | - |
+| action | Fencing action | reboot |</p>
+<h3 id="aws-fence-agents">AWS Fence Agents</h3>
+<p><strong>fence_aws</strong>: Amazon AWS fencing</p>
+<pre class="highlight"><code class="language-bash"># Create AWS fence device
+pcs stonith create fence-aws \
+    fence_aws \
+    region=us-east-1 \
+    access-key=AKIAIOSFODNN7EXAMPLE \
+    secret-key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY \
+    action=reboot</code></pre>
+<p><strong>Parameters</strong>:
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| region | AWS region | - |
+| access-key | AWS access key | - |
+| secret-key | AWS secret key | - |
+| profile | AWS profile | - |
+| action | Fencing action | reboot |</p>
+<h3 id="pdu-fence-agents">PDU Fence Agents</h3>
+<p><strong>fence_apc</strong>: APC PDU fencing</p>
+<pre class="highlight"><code class="language-bash"># Create APC PDU fence device
+pcs stonith create fence-apc-pdu \
+    fence_apc \
+    ipaddr=192.168.1.220 \
+    login=admin \
+    passwd=AdminPass123 \
+    port=1 \
+    action=reboot \
+    pcmk_host_list=node1</code></pre>
+<p><strong>Parameters</strong>:
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| ipaddr | PDU IP address | - |
+| login | PDU username | - |
+| passwd | PDU password | - |
+| port | Outlet number | - |
+| switch | Switch number | 1 |
+| action | Fencing action | reboot |</p>
+<h3 id="switch-fence-agents">Switch Fence Agents</h3>
+<p><strong>fence_ifmib</strong>: SNMP-based fencing</p>
+<pre class="highlight"><code class="language-bash"># Create SNMP fence device
+pcs stonith create fence-switch \
+    fence_ifmib \
+    ipaddr=192.168.1.230 \
+    community=public \
+    action=reboot</code></pre>
+<p><strong>Parameters</strong>:
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| ipaddr | Switch IP address | - |
+| community | SNMP community | public |
+| port | Port number | - |
+| action | Fencing action | reboot |</p>
+<h2 id="stonith-configuration">STONITH Configuration</h2>
+<h3 id="basic-configuration">Basic Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Enable STONITH
+pcs property set stonith-enabled=true
+
+# Set STONITH timeout
+pcs property set stonith-timeout=60s
+
+# Set STONITH action
+pcs property set stonith-action=reboot
+
+# Set STONITH failure handling
+pcs property set stonith-failure-is-fatal=true</code></pre>
+<h3 id="per-node-fencing">Per-Node Fencing</h3>
+<pre class="highlight"><code class="language-bash"># IPMI fencing for node1
+pcs stonith create fence-ipmi-node1 \
+    fence_ipmilan \
+    ipaddr=192.168.1.201 \
+    login=admin \
+    passwd=AdminPass123 \
+    pcmk_host_list=node1
+
+# IPMI fencing for node2
+pcs stonith create fence-ipmi-node2 \
+    fence_ipmilan \
+    ipaddr=192.168.1.202 \
+    login=admin \
+    passwd=AdminPass123 \
+    pcmk_host_list=node2
+
+# IPMI fencing for node3
+pcs stonith create fence-ipmi-node3 \
+    fence_ipmilan \
+    ipaddr=192.168.1.203 \
+    login=admin \
+    passwd=AdminPass123 \
+    pcmk_host_list=node3</code></pre>
+<h3 id="shared-fencing-device">Shared Fencing Device</h3>
+<pre class="highlight"><code class="language-bash"># Single fence device for all nodes
+pcs stonith create fence-vmware \
+    fence_vmware_soap \
+    ipaddr=192.168.1.210 \
+    login=administrator \
+    passwd=AdminPass123 \
+    pcmk_host_list="node1 node2 node3"</code></pre>
+<h3 id="fence-levels">Fence Levels</h3>
+<pre class="highlight"><code class="language-bash"># Primary fencing level (IPMI)
+pcs stonith level add 1 node1 fence-ipmi-node1
+
+# Secondary fencing level (VMware)
+pcs stonith level add 2 node1 fence-vmware
+
+# View fence levels
+pcs stonith level
+
+# Remove fence level
+pcs stonith level remove 1 node1</code></pre>
+<h3 id="fence-methods">Fence Methods</h3>
+<pre class="highlight"><code class="language-bash"># Define fence method
+pcs stonith create fence-ipmi-ilo \
+    fence_ipmilan \
+    ipaddr=192.168.1.201 \
+    login=admin \
+    passwd=AdminPass123 \
+    pcmk_host_list=node1 \
+    op monitor interval=60s
+
+pcs stonith create fence-ilo-fallback \
+    fence_ilo \
+    ipaddr=192.168.1.202 \
+    login=admin \
+    passwd=AdminPass123 \
+    pcmk_host_list=node1</code></pre>
+<h2 id="stonith-operations">STONITH Operations</h2>
+<h3 id="testing-fencing">Testing Fencing</h3>
+<pre class="highlight"><code class="language-bash"># Test fencing manually
+fence_ipmilan -a 192.168.1.201 -l admin -p AdminPass123 \
+    -o status
+
+# Test fencing via pcs
+pcs stonith fence node1
+
+# Test fencing with verbose output
+pcs stonith fence node1 --verbose</code></pre>
+<h3 id="monitoring-fencing">Monitoring Fencing</h3>
+<pre class="highlight"><code class="language-bash"># Check STONITH status
+pcs stonith status
+
+# Check STONITH devices
+pcs stonith show
+
+# Check fence device details
+pcs stonith show fence-ipmi-node1
+
+# Check STONITH logs
+journalctl -u pacemaker -f | grep stonith</code></pre>
+<h3 id="fence-device-management">Fence Device Management</h3>
+<pre class="highlight"><code class="language-bash"># Start fence device
+pcs resource start fence-ipmi-node1
+
+# Stop fence device
+pcs resource stop fence-ipmi-node1
+
+# Enable fence device
+pcs resource enable fence-ipmi-node1
+
+# Disable fence device
+pcs resource disable fence-ipmi-node1
+
+# Delete fence device
+pcs resource delete fence-ipmi-node1</code></pre>
+<h2 id="advanced-configuration">Advanced Configuration</h2>
+<h3 id="stonith-properties">STONITH Properties</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>stonith-enabled</td>
+<td>Enable/disable STONITH</td>
+<td>false</td>
+</tr>
+<tr>
+<td>stonith-timeout</td>
+<td>Timeout for fencing</td>
+<td>60s</td>
+</tr>
+<tr>
+<td>stonith-action</td>
+<td>Default fencing action</td>
+<td>reboot</td>
+</tr>
+<tr>
+<td>stonith-failure-is-fatal</td>
+<td>Stop cluster on fence failure</td>
+<td>true</td>
+</tr>
+<tr>
+<td>stonith-watchdog-timeout</td>
+<td>Watchdog timeout</td>
+<td>0</td>
+</tr>
+<tr>
+<td>stonith-max-attempts</td>
+<td>Max fencing attempts</td>
+<td>2</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="fence-device-attributes">Fence Device Attributes</h3>
+<pre class="highlight"><code class="language-bash"># Set timeout
+pcs resource update fence-ipmi-node1 \
+    meta target-role=Started
+
+# Set monitoring interval
+pcs resource op add fence-ipmi-node1 \
+    monitor interval=60s timeout=90s
+
+# Set resource stickiness
+pcs resource update fence-ipmi-node1 \
+    meta resource-stickiness=0</code></pre>
+<h3 id="fence-device-constraints">Fence Device Constraints</h3>
+<pre class="highlight"><code class="language-bash"># Colocate fencing with node
+pcs constraint colocation add fence-ipmi-node1 with node1
+
+# Order fencing before resources
+pcs constraint order start fence-ipmi-node1 then apache
+
+# Location constraint
+pcs constraint location fence-ipmi-node1 prefers node1</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="fencing-failures">Fencing Failures</h3>
+<p><strong>Check fence device status</strong>:
+<pre class="highlight"><code class="language-bash"># Check STONITH status
+pcs stonith show
+
+# Check resource status
+pcs status resources
+
+# Check cluster status
+pcs status</code></pre></p>
+<p><strong>Test fence device manually</strong>:
+<pre class="highlight"><code class="language-bash"># Test IPMI fencing
+fence_ipmilan -a 192.168.1.201 -l admin -p AdminPass123 \
+    -o status
+
+# Test iLO fencing
+fence_ilo -a 192.168.1.202 -l admin -p AdminPass123 \
+    -o status
+
+# Test DRAC fencing
+fence_drac5 -a 192.168.1.203 -l root -p AdminPass123 \
+    -o status</code></pre></p>
+<p><strong>Check logs</strong>:
+<pre class="highlight"><code class="language-bash"># Check Pacemaker logs
+journalctl -u pacemaker -f
+
+# Check STONITH logs
+grep stonith /var/log/pacemaker/pacemaker.log
+
+# Check fence agent logs
+journalctl -f | grep fence</code></pre></p>
+<h3 id="network-issues">Network Issues</h3>
+<p><strong>Check connectivity</strong>:
+<pre class="highlight"><code class="language-bash"># Ping fence device
+ping -c 3 192.168.1.201
+
+# Check port accessibility
+telnet 192.168.1.201 623
+nc -zv 192.168.1.201 623</code></pre></p>
+<p><strong>Check firewall</strong>:
+<pre class="highlight"><code class="language-bash"># Check firewall rules
+iptables -L -n
+
+# Open IPMI port
+iptables -A INPUT -p tcp --dport 623 -j ACCEPT
+iptables -A INPUT -p udp --dport 623 -j ACCEPT
+
+# Check UFW (Ubuntu)
+ufw allow 623/tcp
+ufw allow 623/udp</code></pre></p>
+<h3 id="authentication-issues">Authentication Issues</h3>
+<p><strong>Verify credentials</strong>:
+<pre class="highlight"><code class="language-bash"># Test IPMI credentials
+ipmitool -I lanplus -H 192.168.1.201 \
+    -U admin -P AdminPass123 chassis status
+
+# Test iLO credentials
+curl -k https://192.168.1.202/ \
+    --user admin:AdminPass123
+
+# Test DRAC credentials
+racadm -r 192.168.1.203 -u root -p AdminPass123 \
+    getinfo</code></pre></p>
+<p><strong>Check fence device configuration</strong>:
+<pre class="highlight"><code class="language-bash"># View fence device configuration
+pcs stonith show fence-ipmi-node1
+
+# Check fence device status
+pcs resource show fence-ipmi-node1</code></pre></p>
+<h2 id="cloud-fencing">Cloud Fencing</h2>
+<h3 id="aws-ec2-fencing">AWS EC2 Fencing</h3>
+<pre class="highlight"><code class="language-bash"># Create AWS fence device
+pcs stonith create fence-aws \
+    fence_aws \
+    region=us-east-1 \
+    access-key=AKIAIOSFODNN7EXAMPLE \
+    secret-key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+# Map instances to fence device
+pcs stonith create fence-aws-node1 \
+    fence_aws \
+    region=us-east-1 \
+    access-key=AKIAIOSFODNN7EXAMPLE \
+    secret-key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY \
+    pcmk_host_map="node1:i-1234567890abcdef0"</code></pre>
+<h3 id="openstack-nova-fencing">OpenStack Nova Fencing</h3>
+<pre class="highlight"><code class="language-bash"># Create OpenStack fence device
+pcs stonith create fence-openstack \
+    fence_openstack \
+    auth-url=http://192.168.1.200:5000/v3 \
+    username=admin \
+    password=AdminPass123 \
+    project-id=service \
+    domain-id=default \
+    region-name=RegionOne
+
+# Map instances
+pcs stonith create fence-openstack-node1 \
+    fence_openstack \
+    auth-url=http://192.168.1.200:5000/v3 \
+    username=admin \
+    password=AdminPass123 \
+    project-id=service \
+    domain-id=default \
+    region-name=RegionOne \
+    pcmk_host_map="node1:server-1-uuid"</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Always enable STONITH</strong> in production</li>
+<li><strong>Use redundant fencing</strong> with multiple levels</li>
+<li><strong>Test fencing devices</strong> regularly</li>
+<li><strong>Monitor fencing operations</strong></li>
+<li><strong>Use appropriate timeout</strong> values</li>
+<li><strong>Secure fence credentials</strong></li>
+<li><strong>Document fencing configuration</strong></li>
+<li><strong>Use fence device monitoring</strong></li>
+<li><strong>Test fencing scenarios</strong></li>
+<li><strong>Have manual fencing procedure ready</strong></li>
+</ol>
+<h2 id="fencing-strategies">Fencing Strategies</h2>
+<h3 id="ipmi-vmware">IPMI + VMware</h3>
+<pre class="highlight"><code class="language-bash"># Primary: IPMI (fast)
+pcs stonith level add 1 node1 fence-ipmi-node1
+
+# Secondary: VMware (reliable)
+pcs stonith level add 2 node1 fence-vmware</code></pre>
+<h3 id="ilo-drac">iLO + DRAC</h3>
+<pre class="highlight"><code class="language-bash"># Primary: iLO
+pcs stonith level add 1 node1 fence-ilo-node1
+
+# Secondary: DRAC
+pcs stonith level add 2 node1 fence-drac-node1</code></pre>
+<h3 id="pdu-network">PDU + Network</h3>
+<pre class="highlight"><code class="language-bash"># Primary: PDU (power off)
+pcs stonith level add 1 node1 fence-apc-pdu
+
+# Secondary: Network switch (disconnect)
+pcs stonith level add 2 node1 fence-switch</code></pre>
+<h2 id="security">Security</h2>
+<h3 id="secure-fence-credentials">Secure Fence Credentials</h3>
+<pre class="highlight"><code class="language-bash"># Use Pacemaker CIB secrets
+pcs resource secret set fence-ipmi-node1 passwd
+
+# Or use environment variables
+export FENCE_PASSWD="AdminPass123"
+pcs stonith create fence-ipmi-node1 \
+    fence_ipmilan \
+    ipaddr=192.168.1.201 \
+    login=admin \
+    passwd="${FENCE_PASSWD}"</code></pre>
+<h3 id="network-security">Network Security</h3>
+<pre class="highlight"><code class="language-bash"># Use dedicated network for fencing
+ip route add 192.168.100.0/24 dev eth1
+
+# Use firewall rules
+iptables -A INPUT -s 192.168.100.0/24 -p tcp --dport 623 -j ACCEPT
+iptables -A INPUT -p tcp --dport 623 -j DROP
+
+# Use IPsec for fencing traffic
+ip xfrm state add src 192.168.100.0/24 dst 192.168.1.0/24 proto esp spi 0x200 mode transport reqid 1000</code></pre>
+<h2 id="monitoring">Monitoring</h2>
+<h3 id="fencing-alerts">Fencing Alerts</h3>
+<pre class="highlight"><code class="language-bash"># Monitor fencing events
+crm_mon --one-shot --as-xml | grep stonith
+
+# Monitor fence device status
+pcs stonith show --full
+
+# Monitor fencing logs
+tail -f /var/log/pacemaker/pacemaker.log | grep stonith</code></pre>
+<h3 id="fencing-metrics">Fencing Metrics</h3>
+<pre class="highlight"><code class="language-bash"># Check fence device performance
+pcs resource show fence-ipmi-node1
+
+# Check fencing history
+crm_history --show fence-ipmi-node1
+
+# Check fencing statistics
+pcs status resources | grep fence</code></pre>
+<h2 id="fencing-simulation">Fencing Simulation</h2>
+<pre class="highlight"><code class="language-bash"># Simulate fencing (without actually fencing)
+pcs stonith fence node1 --dry-run
+
+# Simulate fencing failure
+pcs stonith fence node1 --timeout 1
+
+# Simulate network partition
+iptables -A INPUT -s 192.168.1.0/24 -j DROP</code></pre>
+<h2 id="recovery-procedures">Recovery Procedures</h2>
+<h3 id="manual-fencing">Manual Fencing</h3>
+<pre class="highlight"><code class="language-bash"># Manually fence node via IPMI
+ipmitool -I lanplus -H 192.168.1.201 -U admin -P AdminPass123 \
+    power cycle
+
+# Manually fence node via iLO
+curl -k -X POST https://192.168.1.202/rest/v1/Systems/1/Actions/ComputerSystem.Reset \
+    -d '{"ResetType":"ForceRestart"}' \
+    --user admin:AdminPass123
+
+# Manually fence node via DRAC
+racadm -r 192.168.1.203 -u root -p AdminPass123 serveraction graceful</code></pre>
+<h3 id="recovery-after-fencing">Recovery After Fencing</h3>
+<pre class="highlight"><code class="language-bash"># Wait for node to reboot
+sleep 60
+
+# Check cluster status
+pcs status
+
+# Verify node rejoined cluster
+pcs status nodes
+
+# Start resources on node
+pcs resource move apache node1</code></pre>
+<h2 id="source-code">Source Code</h2>
+<ul>
+<li><strong>Fence Agents</strong>: https://github.com/ClusterLabs/fence-agents</li>
+<li><strong>Pacemaker</strong>: https://github.com/ClusterLabs/pacemaker</li>
+<li><strong>STONITH Documentation</strong>: https://www.clusterlabs.org/pacemaker/doc/2.0/Pacemaker_Explained/</li>
+</ul>
+<h3 id="key-fence-agent-locations">Key Fence Agent Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fence_ipmilan</td>
+<td><code>agents/ipmilan/fence_ipmilan.py</code></td>
+<td>IPMI LAN</td>
+</tr>
+<tr>
+<td>fence_ilo</td>
+<td><code>agents/ilo/fence_ilo.py</code></td>
+<td>HP iLO</td>
+</tr>
+<tr>
+<td>fence_drac5</td>
+<td><code>agents/drac5/fence_drac5.py</code></td>
+<td>Dell DRAC</td>
+</tr>
+<tr>
+<td>fence_vmware_soap</td>
+<td><code>agents/vmware_soap/fence_vmware_soap.py</code></td>
+<td>VMware vSphere</td>
+</tr>
+<tr>
+<td>fence_aws</td>
+<td><code>agents/aws/fence_aws.py</code></td>
+<td>Amazon AWS</td>
+</tr>
+<tr>
+<td>fence_apc</td>
+<td><code>agents/apc/fence_apc.py</code></td>
+<td>APC PDU</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</article>
+<div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
+</div>
+<dialog class="bg-transparent" id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+<div class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100" data-align="start" data-side="bottom" data-slot="popover-content" data-state="open" role="dialog" style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);" tabindex="-1">
+<div class="flex flex-col gap-12 overflow-auto px-6 py-6">
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Menu</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="..">
+                        
+                        Home
+                        
+                    </a>
+<a class="text-2xl font-medium" href="../reference/">
+                        
+                        Reference
+                        
+                    </a>
+<a class="text-2xl font-medium" href="../deployment/">
+                        
+                        Deployment
+                        
+                    </a>
+<a class="text-2xl font-medium" href="../resources/">
+                        
+                        Resources
+                        
+                    </a>
+<a class="text-2xl font-medium" href="../license/">
+                        
+                        License
+                        
+                    </a>
+</div>
+</div>
+<div class="flex flex-col gap-8">
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Cluster Technologies</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="../cluster/">
+                            
+                            Overview
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../cluster/corosync/">
+                            
+                            Corosync
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../cluster/pacemaker/">
+                            
+                            Pacemaker
+                            
+                        </a>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Virtualization</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="../virtualization/">
+                            
+                            Overview
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../virtualization/qemu/">
+                            
+                            QEMU
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../virtualization/kvm/">
+                            
+                            KVM
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../virtualization/libvirt/">
+                            
+                            libvirt
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../virtualization/virsh/">
+                            
+                            virsh
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../virtualization/ovs/">
+                            
+                            Open vSwitch
+                            
+                        </a>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Storage</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="../storage/">
+                            
+                            Overview
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../storage/ceph/">
+                            
+                            CEPH
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../storage/iscsi/">
+                            
+                            iSCSI
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../storage/nvme-of/">
+                            
+                            NVMe-oF
+                            
+                        </a>
+<a class="text-2xl font-medium" href="../storage/gfs2/">
+                            
+                            GFS2
+                            
+                        </a>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="text-muted-foreground text-sm font-medium">Network</div>
+<div class="flex flex-col gap-3">
+<a class="text-2xl font-medium" href="../network/libvirt-network/">
+                            
+                            libvirt Networking
+                            
+                        </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</dialog>
+</div>
+<div class="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] w-72 flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+<div class="h-(--top-spacing) shrink-0"></div>
+<div class="no-scrollbar overflow-y-auto px-8" view-transition-name="toc">
+<div class="flex flex-col gap-2 p-4 pt-0 text-sm">
+<p class="text-muted-foreground bg-background sticky top-0 h-6 text-xs">On This Page</p>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#overview">
+            Overview
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#stonith-architecture">
+            STONITH Architecture
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fencing-process">
+            Fencing Process
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-components">
+            STONITH Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#fence-agent-types">
+            Fence Agent Types
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ipmi-fence-agents">
+            IPMI Fence Agents
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ilo-fence-agents">
+            iLO Fence Agents
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#drac-fence-agents">
+            DRAC Fence Agents
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#vmware-fence-agents">
+            VMware Fence Agents
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#aws-fence-agents">
+            AWS Fence Agents
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#pdu-fence-agents">
+            PDU Fence Agents
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#switch-fence-agents">
+            Switch Fence Agents
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#stonith-configuration">
+            STONITH Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#basic-configuration">
+            Basic Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#per-node-fencing">
+            Per-Node Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#shared-fencing-device">
+            Shared Fencing Device
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fence-levels">
+            Fence Levels
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fence-methods">
+            Fence Methods
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#stonith-operations">
+            STONITH Operations
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#testing-fencing">
+            Testing Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#monitoring-fencing">
+            Monitoring Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fence-device-management">
+            Fence Device Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#advanced-configuration">
+            Advanced Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-properties">
+            STONITH Properties
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fence-device-attributes">
+            Fence Device Attributes
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fence-device-constraints">
+            Fence Device Constraints
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fencing-failures">
+            Fencing Failures
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-issues">
+            Network Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#authentication-issues">
+            Authentication Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#cloud-fencing">
+            Cloud Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#aws-ec2-fencing">
+            AWS EC2 Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#openstack-nova-fencing">
+            OpenStack Nova Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#fencing-strategies">
+            Fencing Strategies
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ipmi-vmware">
+            IPMI + VMware
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ilo-drac">
+            iLO + DRAC
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#pdu-network">
+            PDU + Network
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#security">
+            Security
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#secure-fence-credentials">
+            Secure Fence Credentials
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-security">
+            Network Security
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#monitoring">
+            Monitoring
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fencing-alerts">
+            Fencing Alerts
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#fencing-metrics">
+            Fencing Metrics
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#fencing-simulation">
+            Fencing Simulation
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#recovery-procedures">
+            Recovery Procedures
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#manual-fencing">
+            Manual Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#recovery-after-fencing">
+            Recovery After Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
+            Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-fence-agent-locations">
+            Key Fence Agent Locations
+        </a>
+</div>
+<div class="h-12"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent" view-transition-name="footer">
+<div class="container-wrapper px-4 xl:px-6">
+<div class="flex h-(--footer-height) items-center justify-between">
+<div class="text-muted-foreground w-full text-center text-xs leading-loose sm:text-sm">
+                
+                Built by<!-- --> <span>Linux HA Docs</span> —
+                
+                <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn theme</a> provided by
+                <a href="https://github.com/asiffer">@asiffer</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<script src="../search/main.js"></script>
+<script src="../js/copy-button.js"></script>
+<script>updatePygmentsStylesheet();</script>
+<script type="speculationrules">
+{
+  "prerender": [
+    {
+      "where": {
+          "selector_matches": ["#next-button", "#previous-button"],
+      }
+    }
+  ]
+}
+</script>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.6.1/dist/mermaid.esm.min.mjs";
+mermaid.initialize({});</script></body>
+</html>

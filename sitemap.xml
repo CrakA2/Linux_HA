@@ -13,11 +13,19 @@
          <lastmod>2026-01-25</lastmod>
     </url>
     <url>
+         <loc>https://craka2.github.io/Linux_HA/netplan/</loc>
+         <lastmod>2026-01-25</lastmod>
+    </url>
+    <url>
          <loc>https://craka2.github.io/Linux_HA/reference/</loc>
          <lastmod>2026-01-25</lastmod>
     </url>
     <url>
          <loc>https://craka2.github.io/Linux_HA/resources/</loc>
+         <lastmod>2026-01-25</lastmod>
+    </url>
+    <url>
+         <loc>https://craka2.github.io/Linux_HA/stonith/</loc>
          <lastmod>2026-01-25</lastmod>
     </url>
     <url>
