@@ -509,29 +509,504 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>Kernel-based virtual machine for Linux providing hardware-assisted virtualization.</p>
+<p>Kernel-based virtual machine for Linux providing hardware-assisted virtualization with near-native performance.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[KVM Module] --&gt; B[VMX/SVM Support]
-    A --&gt; C[KVM Kernel Modules]
-    B --&gt; D[QEMU Userspace]
-    C --&gt; E[Virtual Machine Monitor]
-    E --&gt; F[Guest VM]
+    subgraph "User Space"
+        A[QEMU Process]
+        B[Guest Userspace]
+        C[QEMU Device Model]
+    end
+
+    subgraph "Kernel Space"
+        D[KVM Module]
+        E[VMCS/VMCB]
+        F[EPT/NPT]
+        G[IOMMU]
+    end
+
+    subgraph "Hardware"
+        H[CPU - VT-x/AMD-V]
+        I[MMU]
+        J[PCI Devices]
+    end
+
+    A --&gt; D
+    B --&gt; D
+    C --&gt; D
+
+    D --&gt; E
+    D --&gt; F
+    D --&gt; G
+
+    E --&gt; H
+    F --&gt; I
+    G --&gt; J
+
+    style D fill:#c8e6c9
+    style E fill:#ffecb3
+    style F fill:#e1f5ff
+    style H fill:#fff3e0
 </div>
+<h2 id="core-components">Core Components</h2>
+<h3 id="kvm-module">KVM Module</h3>
+<p>Kernel module providing virtualization support.</p>
+<p><strong>KVM Device File</strong>:
+<pre class="highlight"><code class="language-bash"># KVM device node
+/dev/kvm
+/dev/kvm-vm (after VM creation)</code></pre></p>
+<p><strong>KVM IOCTL Operations</strong>:
+| IOCTL | Description |
+|--------|-------------|
+| KVM_CREATE_VM | Create new VM |
+| KVM_CREATE_VCPU | Create virtual CPU |
+| KVM_RUN | Run VCPU |
+| KVM_GET_REGS | Get CPU registers |
+| KVM_SET_REGS | Set CPU registers |
+| KVM_GET_SREGS | Get special registers |
+| KVM_SET_SREGS | Set special registers |
+| KVM_SET_USER_MEMORY_REGION | Set guest memory region |
+| KVM_GET_IRQCHIP | Get interrupt controller |
+| KVM_SET_IRQCHIP | Set interrupt controller |
+| KVM_IRQFD | Setup interrupt file descriptor |
+| KVM_IOEVENTFD | Setup I/O event file descriptor |</p>
+<h3 id="vmcsvmcb">VMCS/VMCB</h3>
+<p>Virtual Machine Control Structure (Intel) or VMCB (AMD) managing guest state.</p>
+<p><strong>VMCS Fields (Intel VT-x)</strong>:
+| Field | Type | Description |
+|-------|------|-------------|
+| CR0, CR3, CR4 | Control | Control registers |
+| RIP, RSP | Guest State | Instruction pointer, stack pointer |
+| RFLAGS | Guest State | Flags register |
+| RAX-RCX, RDX-RBX, RSI-RDI, R8-R15 | Guest State | General purpose registers |
+| CS, DS, ES, FS, GS, SS | Guest State | Segment registers |
+| GDTR, IDTR | Guest State | Global/Interrupt descriptor tables |
+| LDTR, TR | Guest State | Local descriptor table, Task register |
+| EFER | Guest State | Extended feature enable register |
+| VM_EXIT_CONTROLS | Control | VM exit controls |
+| VM_ENTRY_CONTROLS | Control | VM entry controls |</p>
+<p><strong>VMCB Fields (AMD SVM)</strong>:
+| Field | Type | Description |
+|-------|------|-------------|
+| CR0, CR2, CR3, CR4 | Control | Control registers |
+| RIP, RSP | Guest State | Instruction pointer, stack pointer |
+| RFLAGS | Guest State | Flags register |
+| EAX-R15 | Guest State | General purpose registers |
+| CS, DS, ES, FS, GS, SS | Guest State | Segment registers |
+| GDTR, IDTR | Guest State | Global/Interrupt descriptor tables |
+| EXITCODE, EXITINFO1, EXITINFO2 | Exit | VM exit information |</p>
+<h3 id="eptnpt">EPT/NPT</h3>
+<p>Extended Page Tables (Intel) or Nested Page Tables (AMD) for memory virtualization.</p>
+<p><strong>EPT Operation</strong>:</p>
+<div class="mermaid">graph TB
+    A[Guest Physical Address] --&gt; B[EPT Page Walk]
+    B --&gt; C[EPT Entry 1]
+    C --&gt; D[EPT Entry 2]
+    D --&gt; E[EPT Entry 3]
+    E --&gt; F[Host Physical Address]
+
+    G[EPT Violation] --&gt; H[VM Exit]
+    H --&gt; I[EPT Violation Handler]
+
+    style C fill:#c8e6c9
+    style F fill:#ffecb3
+    style H fill:#e1f5ff
+</div>
+<p><strong>EPT Memory Types</strong>:
+| Type | Description |
+|------|-------------|
+| UC | Uncacheable |
+| WC | Write combining |
+| WT | Write-through |
+| WP | Write-protected |
+| WB | Write-back (default) |</p>
+<p><strong>NPT Operation</strong>:
+- Similar to EPT for AMD-V
+- Guest CR3 points to nested page tables
+- Hardware performs 2-level translation</p>
+<h3 id="iommu">IOMMU</h3>
+<p>I/O Memory Management Unit for device passthrough.</p>
+<p><strong>IOMMU Operation</strong>:</p>
+<div class="mermaid">graph TB
+    A[Guest Physical Address] --&gt; B[VFIO Driver]
+    B --&gt; C[IOMMU]
+    C --&gt; D[Device IOTLB]
+    D --&gt; E[Host Physical Address]
+
+    F[DMA Request] --&gt; B
+    G[Device Interrupt] --&gt; B
+
+    style B fill:#c8e6c9
+    style C fill:#ffecb3
+    style E fill:#e1f5ff
+</div>
+<p><strong>IOMMU Benefits</strong>:
+- Direct device access for guest
+- Memory isolation
+- DMA remapping
+- Interrupt remapping (IRQ remapping)</p>
 <h2 id="key-features">Key Features</h2>
-<ul>
-<li>Hardware virtualization extensions (Intel VT-x, AMD-V)</li>
-<li>Near-native performance for guest code</li>
-<li>Memory management with EPT/NPT</li>
-<li>I/O virtualization with virtio</li>
-<li>Live migration support</li>
-</ul>
+<h3 id="hardware-virtualization-extensions">Hardware Virtualization Extensions</h3>
+<p><strong>Intel VT-x Features</strong>:
+| Feature | Description |
+|---------|-------------|
+| VMX | Virtual Machine Extensions |
+| EPT | Extended Page Tables |
+| VPID | Virtual Processor ID |
+| APICv | Virtual APIC |
+| Posted Interrupts | Posted interrupt delivery |
+| Flexible VMX | Flexible VMX control |</p>
+<p><strong>AMD-V Features</strong>:
+| Feature | Description |
+|---------|-------------|
+| SVM | Secure Virtual Machine |
+| NPT | Nested Page Tables |
+| AVIC | Advanced Virtual Interrupt Controller |
+| Virtualized GIF | Virtualized Global Interrupt Flag |
+| Nested Virtualization | Guest hypervisor support |</p>
+<h3 id="cpu-virtualization">CPU Virtualization</h3>
+<p><strong>Guest Code Execution</strong>:</p>
+<div class="mermaid">stateDiagram-v2
+    [*] --&gt; VMEntry
+    VMEntry --&gt; GuestExecution: VMLAUNCH/VMRESUME
+    GuestExecution --&gt; VMExit: VM Exit
+    VMExit --&gt; HostExecution: Handle Exit
+    HostExecution --&gt; VMEntry: VMRESUME
+</div>
+<p><strong>VM Exit Reasons</strong>:
+| Category | Reasons | Frequency |
+|----------|---------|----------|
+| I/O | Port I/O, MMIO, PCI config | High |
+| Interrupts | External interrupt, APIC access | High |
+| Exceptions | Page fault, general protection | Medium |
+| System Management | CPUID, RDTSC, RDMSR, WRMSR | Low |
+| Control | CR access, DR access, EPT/NPT | Low |
+| VMX/SVM | VMXOFF, VMCALL, Triple Fault | Very Low |</p>
+<h3 id="memory-management">Memory Management</h3>
+<p><strong>Guest Memory Translation</strong>:</p>
+<div class="mermaid">graph TB
+    A[Guest Virtual Address] --&gt; B[Guest Page Tables]
+    B --&gt; C[Guest Physical Address]
+    C --&gt; D[EPT/NPT]
+    D --&gt; E[Host Physical Address]
+
+    F[Page Fault] --&gt; B
+    G[EPT Violation] --&gt; D
+
+    style B fill:#c8e6c9
+    style D fill:#ffecb3
+    style E fill:#e1f5ff
+</div>
+<p><strong>Memory Management Features</strong>:
+- EPT/NPT for 2-level translation
+- Huge page support (2MB, 1GB)
+- Memory ballooning
+- Page sharing (KSM)
+- Dirty page tracking</p>
+<h3 id="io-virtualization">I/O Virtualization</h3>
+<p><strong>Virtio I/O</strong>:</p>
+<div class="mermaid">sequenceDiagram
+    participant G as Guest
+    participant V as Virtqueue
+    participant Q as QEMU
+    participant D as Host Device
+
+    G-&gt;&gt;V: Submit I/O
+    V-&gt;&gt;Q: Notification
+    Q-&gt;&gt;D: Host I/O
+    D-&gt;&gt;Q: Completion
+    Q-&gt;&gt;V: Interrupt
+    V-&gt;&gt;G: Complete
+
+    style V fill:#c8e6c9
+    style D fill:#e1f5ff
+</div>
+<p><strong>Device Passthrough</strong>:</p>
+<div class="mermaid">sequenceDiagram
+    participant G as Guest
+    participant VFIO as VFIO Driver
+    participant IOMMU as IOMMU
+    participant D as Host Device
+
+    G-&gt;&gt;VFIO: MMIO/PIO Access
+    VFIO-&gt;&gt;IOMMU: DMA Request
+    IOMMU-&gt;&gt;D: Direct DMA
+    D-&gt;&gt;IOMMU: Completion
+    IOMMU-&gt;&gt;VFIO: Interrupt
+    VFIO-&gt;&gt;G: Inject Interrupt
+
+    style VFIO fill:#c8e6c9
+    style IOMMU fill:#ffecb3
+    style D fill:#e1f5ff
+</div>
+<h2 id="quick-commands">Quick Commands</h2>
+<h3 id="check-kvm-support">Check KVM Support</h3>
+<pre class="highlight"><code class="language-bash"># Check CPU virtualization support
+lscpu | grep -i virtualization
+
+# Check KVM module
+lsmod | grep kvm
+
+# Check /dev/kvm
+ls -l /dev/kvm</code></pre>
+<h3 id="create-vm-with-kvm">Create VM with KVM</h3>
+<pre class="highlight"><code class="language-bash"># Basic KVM VM
+qemu-system-x86_64 -enable-kvm \
+    -name vm1 \
+    -m 2048 \
+    -smp 2 \
+    -drive file=disk.qcow2,format=qcow2
+
+# KVM with host CPU
+qemu-system-x86_64 -enable-kvm -cpu host \
+    -name vm1 \
+    -m 4096 \
+    -smp 4 \
+    -drive file=disk.qcow2,format=qcow2
+
+# KVM with NUMA
+qemu-system-x86_64 -enable-kvm \
+    -name vm1 \
+    -m 4096 \
+    -smp 4 \
+    -numa node,memdev=mem \
+    -object memory-backend-file,id=mem,size=4G,mem-path=/dev/hugepages</code></pre>
+<h3 id="device-passthrough">Device Passthrough</h3>
+<pre class="highlight"><code class="language-bash"># PCI passthrough
+qemu-system-x86_64 -enable-kvm \
+    -device pci-assign,host=01:00.0
+
+# VFIO passthrough
+qemu-system-x86_64 -enable-kvm \
+    -device vfio-pci,host=01:00.0
+
+# Multiple devices
+qemu-system-x86_64 -enable-kvm \
+    -device vfio-pci,host=01:00.0 \
+    -device vfio-pci,host=01:00.1</code></pre>
+<h3 id="memory-configuration">Memory Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Hugepages
+qemu-system-x86_64 -enable-kvm \
+    -m 4096 \
+    -mem-path /dev/hugepages \
+    -mem-prealloc
+
+# KSM optimization
+echo 1 &gt; /sys/kernel/mm/ksm/run
+echo 1000 &gt; /sys/kernel/mm/ksm/pages_to_scan
+
+# Memory ballooning
+qemu-system-x86_64 -enable-kvm \
+    -m 4096 \
+    -device virtio-balloon-pci</code></pre>
+<h2 id="nifty-behaviors">Nifty Behaviors</h2>
+<h3 id="nested-virtualization">Nested Virtualization</h3>
+<pre class="highlight"><code class="language-bash"># Enable nested virtualization
+modprobe kvm_intel nested=1
+# or
+modprobe kvm_amd nested=1
+
+# Check nested support
+cat /sys/module/kvm_intel/parameters/nested
+# or
+cat /sys/module/kvm_amd/parameters/nested
+
+# Create nested VM
+qemu-system-x86_64 -enable-kvm -cpu host,+vmx \
+    -name nested-vm1 \
+    -m 2048 \
+    -smp 2 \
+    -drive file=disk.qcow2,format=qcow2</code></pre>
+<p><strong>Nifty</strong>: Run hypervisor inside hypervisor</p>
+<h3 id="vpid">VPID</h3>
+<pre class="highlight"><code class="language-bash"># VPID reduces VM exits
+qemu-system-x86_64 -enable-kvm -cpu host,+vpid \
+    -name vm1 -m 2048 -smp 2</code></pre>
+<p><strong>Nifty</strong>: Improves VM context switching performance</p>
+<h3 id="apicv">APICv</h3>
+<pre class="highlight"><code class="language-bash"># APICv virtualizes interrupt controller
+qemu-system-x86_64 -enable-kvm -cpu host,+apicv \
+    -name vm1 -m 2048 -smp 2</code></pre>
+<p><strong>Nifty</strong>: Reduces interrupt delivery overhead</p>
+<h3 id="posted-interrupts">Posted Interrupts</h3>
+<pre class="highlight"><code class="language-bash"># Posted interrupts improve interrupt delivery
+qemu-system-x86_64 -enable-kvm -cpu host,+posted-interrupt \
+    -name vm1 -m 2048 -smp 2</code></pre>
+<p><strong>Nifty</strong>: Zero-latency interrupt delivery</p>
+<h2 id="performance-tuning">Performance Tuning</h2>
+<h3 id="cpu-configuration">CPU Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Host CPU passthrough
+qemu-system-x86_64 -enable-kvm -cpu host
+
+# CPU features
+qemu-system-x86_64 -enable-kvm -cpu host,+vmx,+pdpe1gb
+
+# CPU pinning
+qemu-system-x86_64 -enable-kvm \
+    -smp 4 \
+    -numa node,memdev=mem
+
+# CPU topology
+qemu-system-x86_64 -enable-kvm \
+    -smp 4,sockets=2,cores=2,threads=1</code></pre>
+<h3 id="memory-configuration_1">Memory Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Hugepages
+echo 2048 &gt; /proc/sys/vm/nr_hugepages
+qemu-system-x86_64 -enable-kvm \
+    -m 4096 \
+    -mem-path /dev/hugepages \
+    -mem-prealloc
+
+# Transparent hugepages
+echo always &gt; /sys/kernel/mm/transparent_hugepage/enabled
+
+# Memory locking
+qemu-system-x86_64 -enable-kvm -mlock all</code></pre>
+<h3 id="io-configuration">I/O Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Vhost for virtio devices
+qemu-system-x86_64 -enable-kvm \
+    -net nic,model=virtio \
+    -net tap,vhost=on
+
+# IO thread for storage
+qemu-system-x86_64 -enable-kvm \
+    -object iothread,id=io1 \
+    -drive file=disk.qcow2,if=virtio,iothread=io1
+
+# Native AIO
+qemu-system-x86_64 -enable-kvm \
+    -drive file=disk.img,if=virtio,aio=native</code></pre>
+<h3 id="network-configuration">Network Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Vhost-net
+qemu-system-x86_64 -enable-kvm \
+    -net nic,model=virtio \
+    -net tap,vhost=on
+
+# Multiqueue
+qemu-system-x86_64 -enable-kvm \
+    -net nic,model=virtio,vectors=6 \
+    -net tap,queues=4,vhost=on
+
+# Gro/LRO
+qemu-system-x86_64 -enable-kvm \
+    -net nic,model=virtio \
+    -net tap,gro=on</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="vm-not-starting">VM Not Starting</h3>
+<pre class="highlight"><code class="language-bash"># Check KVM module
+lsmod | grep kvm
+
+# Check /dev/kvm
+ls -l /dev/kvm
+
+# Check CPU support
+lscpu | grep -i virtualization
+
+# Check KVM log
+dmesg | grep -i kvm</code></pre>
+<h3 id="performance-issues">Performance Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check CPU usage
+top -H -p $(pidof qemu-system-x86_64)
+
+# Check memory
+free -h
+cat /proc/meminfo | grep -i huge
+
+# Check I/O
+iostat -x 1
+
+# Check network
+sar -n DEV 1</code></pre>
+<h3 id="migration-issues">Migration Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check migration compatibility
+qemu-system-x86_64 -cpu host,check
+
+# Check NUMA configuration
+numactl --hardware
+
+# Check hugepages
+cat /proc/meminfo | grep Huge</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Always use KVM</strong> for x86 guests on supported hardware</li>
+<li><strong>Use -cpu host</strong> for best performance</li>
+<li><strong>Enable hugepages</strong> for memory-intensive workloads</li>
+<li><strong>Use virtio devices</strong> for optimal I/O performance</li>
+<li><strong>Configure NUMA</strong> for large VMs</li>
+<li><strong>Enable KSM</strong> for memory overcommitment</li>
+<li><strong>Use vhost-net</strong> for network performance</li>
+<li><strong>Pin VCPUs</strong> for CPU-intensive workloads</li>
+<li><strong>Monitor VM performance</strong> regularly</li>
+<li><strong>Test nested virtualization</strong> if needed</li>
+</ol>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Location in Linux kernel: <code>virt/kvm/</code></li>
-<li>Repository: https://github.com/torvalds/linux/tree/master/virt/kvm</li>
-<li>Documentation: https://www.linux-kvm.org/</li>
+<li><strong>Location in Linux kernel</strong>: <code>virt/kvm/</code></li>
+<li><strong>Repository</strong>: https://github.com/torvalds/linux/tree/master/virt/kvm</li>
+<li><strong>Documentation</strong>: https://www.linux-kvm.org/</li>
 </ul>
+<h3 id="key-source-locations">Key Source Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Main module</td>
+<td><code>virt/kvm/kvm_main.c</code></td>
+<td>Main KVM module</td>
+</tr>
+<tr>
+<td>Intel VMX</td>
+<td><code>arch/x86/kvm/vmx.c</code></td>
+<td>Intel VT-x implementation</td>
+</tr>
+<tr>
+<td>AMD SVM</td>
+<td><code>arch/x86/kvm/svm.c</code></td>
+<td>AMD-V implementation</td>
+</tr>
+<tr>
+<td>MMU</td>
+<td><code>arch/x86/kvm/mmu.c</code></td>
+<td>Memory management</td>
+</tr>
+<tr>
+<td>EPT</td>
+<td><code>arch/x86/kvm/vmx.c</code></td>
+<td>Extended Page Tables</td>
+</tr>
+<tr>
+<td>IOMMU</td>
+<td><code>virt/kvm/vfio.c</code></td>
+<td>VFIO passthrough</td>
+</tr>
+<tr>
+<td>Interrupts</td>
+<td><code>arch/x86/kvm/irq.c</code></td>
+<td>Interrupt handling</td>
+</tr>
+<tr>
+<td>PIC</td>
+<td><code>arch/x86/kvm/i8259.c</code></td>
+<td>Legacy PIC</td>
+</tr>
+<tr>
+<td>IOAPIC</td>
+<td><code>arch/x86/kvm/ioapic.c</code></td>
+<td>I/O APIC</td>
+</tr>
+<tr>
+<td>LAPIC</td>
+<td><code>arch/x86/kvm/lapic.c</code></td>
+<td>Local APIC</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -694,11 +1169,101 @@
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#kvm-module">
+            KVM Module
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#vmcsvmcb">
+            VMCS/VMCB
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#eptnpt">
+            EPT/NPT
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#iommu">
+            IOMMU
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
             Key Features
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#hardware-virtualization-extensions">
+            Hardware Virtualization Extensions
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cpu-virtualization">
+            CPU Virtualization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#memory-management">
+            Memory Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#io-virtualization">
+            I/O Virtualization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
+            Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#check-kvm-support">
+            Check KVM Support
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#create-vm-with-kvm">
+            Create VM with KVM
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#device-passthrough">
+            Device Passthrough
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#memory-configuration">
+            Memory Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
+            Nifty Behaviors
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#nested-virtualization">
+            Nested Virtualization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#vpid">
+            VPID
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#apicv">
+            APICv
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#posted-interrupts">
+            Posted Interrupts
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#performance-tuning">
+            Performance Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cpu-configuration">
+            CPU Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#memory-configuration_1">
+            Memory Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#io-configuration">
+            I/O Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-configuration">
+            Network Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#vm-not-starting">
+            VM Not Starting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#performance-issues">
+            Performance Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#migration-issues">
+            Migration Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-source-locations">
+            Key Source Locations
         </a>
 </div>
 <div class="h-12"></div>

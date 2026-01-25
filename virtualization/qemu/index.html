@@ -509,56 +509,639 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>Generic and open source machine emulator and virtualizer providing full-system and user-mode emulation.</p>
+<p>Generic and open source machine emulator and virtualizer providing full-system and user-mode emulation with hardware acceleration.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[QEMU Process] --&gt; B[VCPU Threads]
-    A --&gt; C[IO Thread]
-    A --&gt; D[Timer Thread]
-    B --&gt; E[TCG Translator]
-    B --&gt; F[KVM Acceleration]
-    E --&gt; G[Dynamic Binary Translation]
-    F --&gt; H[VM Exit/Entry]
+    subgraph "QEMU Process"
+        A[Main Process]
+        B[VCPU Threads]
+        C[IO Thread]
+        D[Timer Thread]
+        E[Display Thread]
+    end
+
+    subgraph "Accelerators"
+        F[TCG - Tiny Code Generator]
+        G[KVM - Kernel Virtual Machine]
+        H[Xen]
+    end
+
+    subgraph "Device Emulation"
+        I[Virtio Devices]
+        J[Network]
+        K[Storage]
+        L[Graphics]
+        M[Input]
+    end
+
+    subgraph "I/O Paths"
+        N[MMIO - Memory Mapped I/O]
+        O[PIO - Port I/O]
+        P[DMA - Direct Memory Access]
+        Q[IRQ - Interrupt Request]
+    end
+
+    A --&gt; B
+    A --&gt; C
+    A --&gt; D
+    A --&gt; E
+
+    B --&gt; F
+    B --&gt; G
+    B --&gt; H
+
+    C --&gt; I
+    C --&gt; J
+    C --&gt; K
+    C --&gt; L
+    C --&gt; M
+
+    I --&gt; N
+    I --&gt; O
+    I --&gt; P
+    I --&gt; Q
+
+    J --&gt; N
+    J --&gt; O
+    K --&gt; N
+    K --&gt; O
+
+    style A fill:#c8e6c9
+    style G fill:#ffecb3
+    style F fill:#e1f5ff
+    style I fill:#fff3e0
 </div>
-<h2 id="key-features">Key Features</h2>
-<ul>
-<li>Full-system emulation of various architectures</li>
-<li>User-mode emulation for cross-platform binaries</li>
-<li>TCG dynamic translation for performance</li>
-<li>KVM integration for hardware acceleration</li>
-<li>Device emulation (network, storage, graphics)</li>
-</ul>
+<h2 id="core-components">Core Components</h2>
+<h3 id="vcpu-virtual-cpu">VCPU (Virtual CPU)</h3>
+<p>Threads executing guest code in virtual CPU context.</p>
+<p><strong>VCPU States</strong>:
+| State | Description |
+|-------|-------------|
+| Running | Currently executing guest code |
+| Blocked | Waiting for I/O or sleep |
+| Exited | VCPU exited |</p>
+<p><strong>VCPU Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Set VCPU count
+qemu-system-x86_64 -smp 4
+
+# Set CPU topology
+qemu-system-x86_64 -smp 4,sockets=2,cores=2,threads=1
+
+# Pin VCPUs to physical CPUs
+qemu-system-x86_64 -smp 4 -numa node,memdev=mem</code></pre></p>
+<h3 id="tcg-tiny-code-generator">TCG (Tiny Code Generator)</h3>
+<p>Dynamic binary translation engine for software emulation.</p>
+<p><strong>TCG Operation</strong>:</p>
+<div class="mermaid">graph LR
+    A[Guest Binary Code] --&gt; B[TCG Translator]
+    B --&gt; C[Host Code Block]
+    C --&gt; D[Translation Cache]
+    D --&gt; E[Code Execution]
+
+    F[Cache Miss] --&gt; B
+    E --&gt; G[Execution Result]
+
+    style B fill:#c8e6c9
+    style D fill:#ffecb3
+    style E fill:#e1f5ff
+</div>
+<p><strong>TCG Features</strong>:
+- Dynamic translation
+- Block chaining
+- Code cache management
+- Cross-architectural emulation
+- No hardware requirements</p>
+<p><strong>TCG Performance</strong>:
+- Slower than KVM (~10-20% host speed)
+- Cross-platform compatibility
+- Good for non-virtualized hosts</p>
+<h3 id="kvm-acceleration">KVM Acceleration</h3>
+<p>Hardware virtualization using Intel VT-x or AMD-V.</p>
+<p><strong>KVM Operation</strong>:</p>
+<div class="mermaid">sequenceDiagram
+    participant Q as QEMU
+    participant K as KVM Module
+    participant G as Guest
+
+    Q-&gt;&gt;K: Create VM
+    K-&gt;&gt;K: Allocate resources
+
+    Q-&gt;&gt;G: Start VCPU
+    G-&gt;&gt;G: Execute guest code
+
+    G-&gt;&gt;K: VM Exit (I/O, interrupt)
+    K-&gt;&gt;Q: Handle exit
+    Q-&gt;&gt;K: Resume guest
+
+    style K fill:#c8e6c9
+    style G fill:#e1f5ff
+</div>
+<p><strong>KVM Features</strong>:
+- Native CPU execution
+- Near-native performance (~95-98% host speed)
+- Virtualization extensions required
+- Paravirtualized I/O support</p>
+<p><strong>VM Exit Reasons</strong>:
+| Reason | Description | Frequency |
+|--------|-------------|----------|
+| I/O Port Access | Guest accesses PIO | High |
+| MMIO Access | Guest accesses MMIO | Medium |
+| Interrupt | Hardware interrupt | High |
+| Interrupt Window | Interrupt delivery needed | Medium |
+| HLT | CPU halted | Low |
+| CR Access | Control register access | Low |</p>
+<h3 id="io-thread">IO Thread</h3>
+<p>Dedicated thread for I/O operations to improve performance.</p>
+<p><strong>IO Thread Benefits</strong>:
+- Non-blocking I/O for VCPUs
+- Improved I/O throughput
+- Better concurrency</p>
+<p><strong>IO Thread Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Enable IO thread
+qemu-system-x86_64 -object iothread,id=io1 \
+    -device virtio-blk-pci,iothread=io1
+
+# Multiple IO threads
+qemu-system-x86_64 \
+    -object iothread,id=io1 \
+    -object iothread,id=io2 \
+    -device virtio-blk-pci,iothread=io1 \
+    -device virtio-blk-pci,iothread=io2</code></pre></p>
+<h2 id="device-emulation">Device Emulation</h2>
+<h3 id="virtio-devices">Virtio Devices</h3>
+<p>Paravirtualized devices for optimal performance.</p>
+<p><strong>Virtio Architecture</strong>:</p>
+<div class="mermaid">graph TB
+    A[Guest Driver] --&gt; B[Virtqueue]
+    B --&gt; C[Virtio Ring]
+    C --&gt; D[Host Device]
+
+    E[Notification] --&gt; B
+    F[Completion] --&gt; B
+
+    style B fill:#c8e6c9
+    style D fill:#e1f5ff
+</div>
+<p><strong>Virtio Device Types</strong>:
+| Device | Description | Performance |
+|--------|-------------|------------|
+| virtio-blk | Block device | Excellent |
+| virtio-net | Network device | Excellent |
+| virtio-scsi | SCSI controller | Very Good |
+| virtio-serial | Serial port | Good |
+| virtio-gpu | Graphics | Good |
+| virtio-rng | Random number | Good |</p>
+<p><strong>Virtio Features</strong>:
+- Zero-copy I/O
+- Direct guest memory access
+- Efficient notification mechanism
+- Queue-based I/O</p>
+<h3 id="network-devices">Network Devices</h3>
+<h4 id="virtio-network">Virtio Network</h4>
+<pre class="highlight"><code class="language-bash"># Basic virtio network
+qemu-system-x86_64 -net nic,model=virtio \
+    -net user,hostfwd=tcp::2222-:22
+
+# Multiqueue virtio
+qemu-system-x86_64 -net nic,model=virtio,vectors=6 \
+    -net tap,ifname=tap0,queues=4,vhost=on
+
+# Bridge network
+qemu-system-x86_64 -net nic,model=virtio \
+    -net tap,script=/etc/qemu-ifup,downscript=/etc/qemu-ifdown</code></pre>
+<p><strong>Virtio Network Features</strong>:
+- Multiple queues (virtio multiqueue)
+- Vhost support (kernel-space driver)
+- Zero-copy transmission
+- Large packet offload</p>
+<p><strong>Vhost Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Enable vhost-net
+qemu-system-x86_64 -net nic,model=virtio \
+    -net tap,vhost=on,vhostforce=on
+
+# Multiple vhost queues
+qemu-system-x86_64 -net nic,model=virtio,vectors=6 \
+    -net tap,queues=4,vhost=on</code></pre></p>
+<h3 id="storage-devices">Storage Devices</h3>
+<h4 id="virtio-block">Virtio Block</h4>
+<pre class="highlight"><code class="language-bash"># Virtio block device
+qemu-system-x86_64 -drive file=disk.qcow2,if=virtio,format=qcow2
+
+# Virtio block with cache
+qemu-system-x86_64 \
+    -drive file=disk.qcow2,if=virtio,format=qcow2,cache=writeback
+
+# Virtio block with multiple queues
+qemu-system-x86_64 \
+    -object iothread,id=io1 \
+    -drive file=disk.qcow2,if=virtio,format=qcow2,iothread=io1</code></pre>
+<p><strong>Virtio Block Features</strong>:
+- Direct I/O support
+- Multiple queues with IO thread
+- Write barriers
+- Discard support
+- Write-zeroes support</p>
+<h4 id="virtio-scsi">Virtio SCSI</h4>
+<pre class="highlight"><code class="language-bash"># Virtio SCSI
+qemu-system-x86_64 \
+    -device virtio-scsi-pci \
+    -drive file=disk1.qcow2,if=none,id=drive1 \
+    -device scsi-hd,drive=drive1
+
+# Multiple SCSI devices
+qemu-system-x86_64 \
+    -device virtio-scsi-pci \
+    -drive file=disk1.qcow2,if=none,id=drive1 \
+    -device scsi-hd,drive=drive1 \
+    -drive file=disk2.qcow2,if=none,id=drive2 \
+    -device scsi-hd,drive=drive2</code></pre>
+<p><strong>Virtio SCSI Features</strong>:
+- Multiple devices per controller
+- SCSI command support
+- Persistent reservations
+- Better than virtio-blk for many disks</p>
+<h2 id="io-paths">I/O Paths</h2>
+<h3 id="mmio-memory-mapped-io">MMIO (Memory Mapped I/O)</h3>
+<p>Device registers mapped to guest memory space.</p>
+<p><strong>MMIO Access Flow</strong>:</p>
+<div class="mermaid">graph LR
+    A[Guest CPU] --&gt; B[Guest Address Space]
+    B --&gt; C[MMIO Region]
+    C --&gt; D[MMIO Handler]
+    D --&gt; E[Device Emulation]
+
+    F[VM Exit] --&gt; D
+    E --&gt; G[I/O Completion]
+
+    style C fill:#c8e6c9
+    style E fill:#e1f5ff
+</div>
+<p><strong>MMIO Characteristics</strong>:
+- Memory-mapped registers
+- Triggers VM exit on access
+- Used for device configuration
+- Slower than DMA</p>
+<h3 id="pio-port-io">PIO (Port I/O)</h3>
+<p>Legacy x86 I/O port access.</p>
+<p><strong>PIO Characteristics</strong>:
+- Legacy x86 I/O ports
+- Triggers VM exit on IN/OUT
+- Used for legacy device access
+- Slower than MMIO
+- Limited to 64K ports</p>
+<p><strong>PIO Example</strong>:
+<pre class="highlight"><code class="language-bash"># Legacy IDE device
+qemu-system-x86_64 \
+    -drive file=disk.img,if=ide
+
+# Legacy network (e1000)
+qemu-system-x86_64 \
+    -net nic,model=e1000</code></pre></p>
+<h3 id="dma-direct-memory-access">DMA (Direct Memory Access)</h3>
+<p>Direct guest memory access for I/O operations.</p>
+<p><strong>DMA Operation</strong>:</p>
+<div class="mermaid">graph TB
+    A[Guest Device] --&gt; B[DMA Request]
+    B --&gt; C[Guest Physical Address]
+    C --&gt; D[IOMMU Translation]
+    D --&gt; E[Host Physical Address]
+    E --&gt; F[Host Device]
+
+    F --&gt; G[Data Transfer]
+    G --&gt; H[Completion Interrupt]
+
+    style D fill:#c8e6c9
+    style F fill:#e1f5ff
+</div>
+<p><strong>DMA Features</strong>:
+- Direct guest memory access
+- High performance
+- IOMMU support for isolation
+- Used by virtio devices</p>
+<h3 id="irq-interrupt-request">IRQ (Interrupt Request)</h3>
+<p>Hardware interrupt delivery to guest.</p>
+<p><strong>IRQ Flow</strong>:</p>
+<div class="mermaid">sequenceDiagram
+    participant G as Guest
+    participant Q as QEMU
+    participant K as KVM
+
+    G-&gt;&gt;Q: Complete I/O
+    Q-&gt;&gt;K: Inject IRQ
+    K-&gt;&gt;G: Deliver interrupt
+    G-&gt;&gt;G: Handle interrupt
+
+    style K fill:#c8e6c9
+    style G fill:#e1f5ff
+</div>
+<p><strong>IRQ Types</strong>:
+- <strong>PIC</strong>: Legacy 8259 PIC
+- <strong>IOAPIC</strong>: Advanced programmable interrupt controller
+- <strong>MSI</strong>: Message signaled interrupts
+- <strong>MSI-X</strong>: Enhanced MSI</p>
+<p><strong>MSI Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Enable MSI-X
+qemu-system-x86_64 \
+    -device virtio-net-pci,msix=on
+
+# Multiple MSI-X vectors
+qemu-system-x86_64 \
+    -device virtio-net-pci,msix=on,vectors=6</code></pre></p>
 <h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># Create VM
-qemu-system-x86_64 -name vm1 -m 2048 -smp 2 \
+<h3 id="basic-vm-creation">Basic VM Creation</h3>
+<pre class="highlight"><code class="language-bash"># Simple VM
+qemu-system-x86_64 \
+    -name vm1 \
+    -m 2048 \
+    -smp 2 \
     -drive file=disk.qcow2,format=qcow2 \
     -netdev user,id=net0,hostfwd=tcp::2222-:22
 
-# Enable KVM
-qemu-system-x86_64 -enable-kvm -name vm1 -m 4096 -smp 4</code></pre>
+# VM with graphics
+qemu-system-x86_64 \
+    -name vm1 \
+    -m 2048 \
+    -smp 2 \
+    -drive file=disk.qcow2,format=qcow2 \
+    -vnc :1
+
+# VM with KVM
+qemu-system-x86_64 -enable-kvm \
+    -name vm1 \
+    -m 4096 \
+    -smp 4 \
+    -drive file=disk.qcow2,format=qcow2</code></pre>
+<h3 id="advanced-configuration">Advanced Configuration</h3>
+<pre class="highlight"><code class="language-bash"># CPU configuration
+qemu-system-x86_64 \
+    -cpu host \
+    -smp 4,sockets=2,cores=2,threads=1
+
+# Memory configuration
+qemu-system-x86_64 \
+    -m 4096 \
+    -mem-path /dev/hugepages \
+    -mem-prealloc
+
+# NUMA topology
+qemu-system-x86_64 \
+    -m 4096 \
+    -numa node,memdev=mem \
+    -object memory-backend-file,id=mem,size=4G,mem-path=/dev/hugepages,share=on</code></pre>
+<h3 id="network-configuration">Network Configuration</h3>
+<pre class="highlight"><code class="language-bash"># User networking
+qemu-system-x86_64 \
+    -netdev user,id=net0,hostfwd=tcp::2222-:22
+
+# TAP networking
+qemu-system-x86_64 \
+    -netdev tap,id=net0,ifname=tap0,script=no,downscript=no
+
+# Bridge networking
+qemu-system-x86_64 \
+    -netdev bridge,id=net0,br=br0
+
+# Virtio multiqueue
+qemu-system-x86_64 \
+    -net nic,model=virtio,vectors=6 \
+    -net tap,queues=4,vhost=on</code></pre>
+<h3 id="storage-configuration">Storage Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Qcow2 image
+qemu-system-x86_64 \
+    -drive file=disk.qcow2,format=qcow2,if=virtio
+
+# Raw image
+qemu-system-x86_64 \
+    -drive file=disk.img,format=raw,if=virtio
+
+# Multiple disks
+qemu-system-x86_64 \
+    -drive file=disk1.qcow2,if=virtio \
+    -drive file=disk2.qcow2,if=virtio
+
+# CD-ROM
+qemu-system-x86_64 \
+    -drive file=ubuntu.iso,media=cdrom</code></pre>
 <h2 id="nifty-behaviors">Nifty Behaviors</h2>
 <h3 id="qmp-programmatic-control">QMP Programmatic Control</h3>
-<p><pre class="highlight"><code class="language-bash">echo '{"execute":"query-status"}' | \
-    socat UNIX-CONNECT:/var/run/libvirt/qemu/vm1.monitor</code></pre>
-<strong>Nifty</strong>: Programmatic control of running VMs</p>
+<pre class="highlight"><code class="language-bash"># Start QEMU with QMP socket
+qemu-system-x86_64 -qmp tcp:localhost:4444,server,nowait
+
+# Connect to QMP
+echo '{"execute":"qmp_capabilities"}' | \
+    socat TCP:localhost:4444 -
+
+# Query status
+echo '{"execute":"query-status"}' | \
+    socat TCP:localhost:4444 -
+
+# Start VM
+echo '{"execute":"cont"}' | \
+    socat TCP:localhost:4444 -</code></pre>
+<p><strong>Nifty</strong>: Programmatic control of running VMs</p>
 <h3 id="virtio-multiqueue">Virtio Multiqueue</h3>
-<p><pre class="highlight"><code class="language-xml">&lt;interface type='network'&gt;
+<pre class="highlight"><code class="language-bash"># Create VM with multiqueue
+qemu-system-x86_64 \
+    -net nic,model=virtio,vectors=6 \
+    -net tap,queues=4,vhost=on
+
+# Libvirt XML
+&lt;interface type='network'&gt;
     &lt;model type='virtio'/&gt;
     &lt;driver name='vhost' queues='4'/&gt;
 &lt;/interface&gt;</code></pre>
-<strong>Nifty</strong>: Multi-queue network, better throughput</p>
+<p><strong>Nifty</strong>: Multi-queue network, better throughput</p>
 <h3 id="memory-ballooning">Memory Ballooning</h3>
-<p><pre class="highlight"><code class="language-bash"># Attach balloon device
-virsh attach-device vm1 balloon.xml
+<pre class="highlight"><code class="language-bash"># Attach balloon device
+qemu-system-x86_64 \
+    -device virtio-balloon-pci
 
-# Adjust memory
-virsh setmem vm1 2G</code></pre>
-<strong>Nifty</strong>: Dynamically adjust VM memory</p>
+# Adjust memory via QMP
+echo '{"execute":"balloon","arguments":{"size":1073741824}}' | \
+    socat TCP:localhost:4444 -
+
+# Libvirt balloon
+virsh setmem vm1 2G
+virsh setmem vm1 4G</code></pre>
+<p><strong>Nifty</strong>: Dynamically adjust VM memory</p>
+<h3 id="live-migration">Live Migration</h3>
+<pre class="highlight"><code class="language-bash"># Source VM
+qemu-system-x86_64 \
+    -name vm1 \
+    -m 4096 \
+    -smp 4 \
+    -drive file=disk.qcow2,if=virtio \
+    -incoming tcp:0:4444
+
+# Destination VM
+qemu-system-x86_64 \
+    -name vm1 \
+    -m 4096 \
+    -smp 4 \
+    -drive file=disk.qcow2,if=virtio \
+    -monitor stdio
+
+# Trigger migration (in destination monitor)
+migrate -tcp:source:4444</code></pre>
+<p><strong>Nifty</strong>: Zero-downtime VM migration</p>
+<h2 id="performance-optimization">Performance Optimization</h2>
+<h3 id="cpu-optimization">CPU Optimization</h3>
+<pre class="highlight"><code class="language-bash"># Host CPU passthrough
+qemu-system-x86_64 -cpu host
+
+# CPU features
+qemu-system-x86_64 -cpu host,+vmx,+pdpe1gb
+
+# CPU pinning
+qemu-system-x86_64 -smp 4 -numa node,memdev=mem</code></pre>
+<h3 id="memory-optimization">Memory Optimization</h3>
+<pre class="highlight"><code class="language-bash"># Hugepages
+qemu-system-x86_64 \
+    -m 4096 \
+    -mem-path /dev/hugepages \
+    -mem-prealloc
+
+# KSM (Kernel Same-page Merging)
+echo 1 &gt; /sys/kernel/mm/ksm/run
+echo 1000 &gt; /sys/kernel/mm/ksm/pages_to_scan
+
+# Memory balloon
+qemu-system-x86_64 -device virtio-balloon-pci</code></pre>
+<h3 id="io-optimization">I/O Optimization</h3>
+<pre class="highlight"><code class="language-bash"># IO thread
+qemu-system-x86_64 \
+    -object iothread,id=io1 \
+    -drive file=disk.qcow2,if=virtio,iothread=io1
+
+# Multiple IO threads
+qemu-system-x86_64 \
+    -object iothread,id=io1 \
+    -object iothread,id=io2 \
+    -drive file=disk1.qcow2,if=virtio,iothread=io1 \
+    -drive file=disk2.qcow2,if=virtio,iothread=io2
+
+# Cache options
+qemu-system-x86_64 \
+    -drive file=disk.qcow2,if=virtio,cache=writeback,async=on
+
+# Native AIO
+qemu-system-x86_64 \
+    -drive file=disk.img,if=virtio,aio=native</code></pre>
+<h3 id="network-optimization">Network Optimization</h3>
+<pre class="highlight"><code class="language-bash"># Vhost-net
+qemu-system-x86_64 \
+    -net nic,model=virtio \
+    -net tap,vhost=on
+
+# Multiple queues
+qemu-system-x86_64 \
+    -net nic,model=virtio,vectors=6 \
+    -net tap,queues=4,vhost=on
+
+# Large receive offload
+qemu-system-x86_64 \
+    -net nic,model=virtio \
+    -net tap,gro=on</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="performance-issues">Performance Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check if KVM is enabled
+qemu-system-x86_64 -accel kvm -version
+
+# Check VCPU load
+top -H -p $(pidof qemu-system-x86_64)
+
+# Check I/O
+iostat -x 1
+
+# Check network
+sar -n DEV 1</code></pre>
+<h3 id="migration-issues">Migration Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check migration status
+echo '{"execute":"query-migrate"}' | \
+    socat TCP:localhost:4444 -
+
+# Cancel migration
+echo '{"execute":"migrate_cancel"}' | \
+    socat TCP:localhost:4444 -
+
+# Check compatibility
+echo '{"execute":"query-migrate-capabilities"}' | \
+    socat TCP:localhost:4444 -</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Always use KVM</strong> for x86 guests on supported hardware</li>
+<li><strong>Use virtio devices</strong> for optimal performance</li>
+<li><strong>Enable IO threads</strong> for storage-intensive workloads</li>
+<li><strong>Use hugepages</strong> for memory-intensive workloads</li>
+<li><strong>Enable vhost-net</strong> for network performance</li>
+<li><strong>Configure NUMA</strong> for large VMs</li>
+<li><strong>Use cache=writeback</strong> for better disk performance</li>
+<li><strong>Test migration</strong> in production environment</li>
+<li><strong>Monitor VM performance</strong> regularly</li>
+<li><strong>Use snapshots</strong> for backup/rollback</li>
+</ol>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Repository: https://gitlab.com/qemu-project/qemu</li>
-<li>Documentation: https://www.qemu.org/documentation/</li>
+<li><strong>Repository</strong>: https://gitlab.com/qemu-project/qemu</li>
+<li><strong>Documentation</strong>: https://www.qemu.org/documentation/</li>
 </ul>
+<h3 id="key-source-locations">Key Source Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Main loop</td>
+<td><code>cpus.c</code></td>
+<td>CPU execution loop</td>
+</tr>
+<tr>
+<td>TCG</td>
+<td><code>tcg/</code></td>
+<td>Tiny Code Generator</td>
+</tr>
+<tr>
+<td>KVM</td>
+<td><code>accel/kvm/</code></td>
+<td>KVM acceleration</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td><code>exec.c</code></td>
+<td>Memory management</td>
+</tr>
+<tr>
+<td>I/O</td>
+<td><code>ioport.c</code></td>
+<td>Port I/O</td>
+</tr>
+<tr>
+<td>MMIO</td>
+<td><code>memory.c</code></td>
+<td>Memory Mapped I/O</td>
+</tr>
+<tr>
+<td>Virtio</td>
+<td><code>hw/virtio/</code></td>
+<td>Virtio devices</td>
+</tr>
+<tr>
+<td>Block</td>
+<td><code>block/</code></td>
+<td>Block devices</td>
+</tr>
+<tr>
+<td>Network</td>
+<td><code>net/</code></td>
+<td>Network devices</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -721,11 +1304,62 @@ virsh setmem vm1 2G</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
-            Key Features
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#vcpu-virtual-cpu">
+            VCPU (Virtual CPU)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#tcg-tiny-code-generator">
+            TCG (Tiny Code Generator)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#kvm-acceleration">
+            KVM Acceleration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#io-thread">
+            IO Thread
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#device-emulation">
+            Device Emulation
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#virtio-devices">
+            Virtio Devices
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-devices">
+            Network Devices
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#storage-devices">
+            Storage Devices
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#io-paths">
+            I/O Paths
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#mmio-memory-mapped-io">
+            MMIO (Memory Mapped I/O)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#pio-port-io">
+            PIO (Port I/O)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#dma-direct-memory-access">
+            DMA (Direct Memory Access)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#irq-interrupt-request">
+            IRQ (Interrupt Request)
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#basic-vm-creation">
+            Basic VM Creation
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#advanced-configuration">
+            Advanced Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-configuration">
+            Network Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#storage-configuration">
+            Storage Configuration
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
             Nifty Behaviors
@@ -739,8 +1373,41 @@ virsh setmem vm1 2G</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#memory-ballooning">
             Memory Ballooning
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#live-migration">
+            Live Migration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#performance-optimization">
+            Performance Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cpu-optimization">
+            CPU Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#memory-optimization">
+            Memory Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#io-optimization">
+            I/O Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-optimization">
+            Network Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#performance-issues">
+            Performance Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#migration-issues">
+            Migration Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-source-locations">
+            Key Source Locations
         </a>
 </div>
 <div class="h-12"></div>

@@ -509,66 +509,762 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>Cluster messaging and synchronization framework providing virtual synchrony guarantees and quorum management.</p>
+<p>Cluster messaging and synchronization framework providing virtual synchrony guarantees and quorum management for Linux HA clusters.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[Application Layer] --&gt; B[Corosync Cluster Engine]
-    B --&gt; C[TOTEM Protocol]
-    B --&gt; D[Quorum System]
-    B --&gt; E[Configuration DB]
-    B --&gt; F[Availability Manager]
-    C --&gt; G[Network Layer]
-    D --&gt; H[Ring Topology]
-</div>
-<h2 id="key-features">Key Features</h2>
-<ul>
-<li>Virtual Synchrony model for consistent message ordering</li>
-<li>TOTEM protocol for reliable group communication</li>
-<li>Quorum system to prevent split-brain scenarios</li>
-<li>In-memory configuration database</li>
-</ul>
-<h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># Installation
-apt-get install corosync
-corosync-keygen
+    subgraph "Application Layer"
+        A[Pacemaker]
+        B[DLM]
+        C[Custom Apps]
+    end
 
-# Status
-corosync-cfgtool -s
+    subgraph "Corosync Core"
+        D[Configuration DB]
+        E[Configuration API]
+        F[Log System]
+        G[Statistic System]
+
+        H[Quorum System]
+        I[Votequorum]
+        J[Corosync Votequorum]
+
+        K[TOTEM Protocol]
+        L[Transport UDP]
+        M[Transport KNF]
+        N[Transport KNET]
+
+        O[IPC Service]
+        P[Unix Sockets]
+        Q[SHM]
+    end
+
+    A --&gt; D
+    B --&gt; D
+    C --&gt; D
+
+    A --&gt; O
+    B --&gt; O
+    C --&gt; O
+
+    O --&gt; P
+    O --&gt; Q
+
+    A --&gt; H
+    B --&gt; H
+    C --&gt; H
+
+    H --&gt; I
+    I --&gt; J
+
+    A --&gt; K
+    B --&gt; K
+    C --&gt; K
+
+    K --&gt; L
+    K --&gt; M
+    K --&gt; N
+
+    E --&gt; D
+    F --&gt; D
+    G --&gt; D
+
+    style D fill:#c8e6c9
+    style H fill:#ffecb3
+    style K fill:#e1f5ff
+</div>
+<h2 id="core-components">Core Components</h2>
+<h3 id="totem-protocol">TOTEM Protocol</h3>
+<p>The Totem Single Ring Ordering and Membership protocol provides virtual synchrony for cluster messaging.</p>
+<p><strong>Virtual Synchrony Properties</strong>:
+- Total order: All messages delivered in same order to all nodes
+- Agreement: Messages delivered to live nodes in same view
+- Safety: No messages delivered after view change completes</p>
+<p><strong>Protocol Operation</strong>:</p>
+<div class="mermaid">graph LR
+    A[Application Message] --&gt; B[Message Queue]
+    B --&gt; C[Sequencer Assignment]
+    C --&gt; D[Ring Broadcast]
+    D --&gt; E[Message Delivery]
+    E --&gt; F[Application Receive]
+
+    G[Node Failure] --&gt; H[View Change]
+    H --&gt; I[Membership Reconfiguration]
+    I --&gt; J[Recovery]
+
+    style B fill:#c8e6c9
+    style D fill:#e1f5ff
+    style H fill:#ffecb3
+</div>
+<p><strong>TOTEM Parameters</strong>:
+- <code>token</code>: Time between token rotations (ms)
+- <code>token_retransmit</code>: Retransmission timeout (ms)
+- <code>hold</code>: Token hold time before release (ms)
+- <code>token_retransmits_before_loss_const</code>: Token loss threshold
+- <code>join</code>: Join timeout (ms)
+- <code>consensus</code>: Consensus timeout (ms)
+- <code>merge</code>: Merge timeout (ms)
+- <code>downcheck</code>: Node down detection (ms)</p>
+<h3 id="quorum-system">Quorum System</h3>
+<p>Corosync uses quorum to prevent split-brain scenarios where clusters form separate groups.</p>
+<p><strong>Quorum Types</strong>:</p>
+<ol>
+<li><strong>Split-Brain Prevention</strong>: Ensure cluster consistency</li>
+<li><strong>Votequorum</strong>: Simple voting mechanism</li>
+<li><strong>QNet</strong>: Network-based quorum device</li>
+<li><strong>QDevice</strong>: External quorum device</li>
+</ol>
+<p><strong>Votequorum Operation</strong>:</p>
+<pre class="highlight"><code class="language-bash"># Check quorum state
 corosync-quorumtool -s
 
-# Configuration
-corosync-cmapctl</code></pre>
-<h2 id="nifty-behaviors">Nifty Behaviors</h2>
-<h3 id="kronosnet-multi-link-transport">Kronosnet Multi-Link Transport</h3>
-<p><pre class="highlight"><code class="language-conf">totem {
+# Expected output example:
+Quorum information
+------------------
+Date:             Mon Jan 26 2026
+Quorum provider:  corosync_votequorum
+Nodes:            3
+Node ID:          1
+Ring ID:          1/8168
+Quorate:          Yes
+
+Votequorum information
+----------------------
+Expected votes:   3
+Highest expected: 3
+Total votes:      3
+Quorum:           2
+Flags:            Quorate</code></pre>
+<p><strong>Quorum Calculation</strong>:
+- Minimum votes required: <code>floor(total_votes / 2) + 1</code>
+- 3-node cluster: quorum = 2
+- 5-node cluster: quorum = 3
+- 2-node cluster: requires QDevice</p>
+<h3 id="configuration-database">Configuration Database</h3>
+<p>In-memory key-value store for cluster configuration.</p>
+<p><strong>Configuration API</strong>:</p>
+<pre class="highlight"><code class="language-bash"># List all keys
+corosync-cmapctl
+
+# Read specific key
+corosync-cmapctl -g runtime.totem.token
+
+# Set key value
+corosync-cmapctl -s nodelist.node.0.nodeid -t u32 -v 1
+
+# Map keys to values
+corosync-cmapctl -b runtime</code></pre>
+<p><strong>Configuration Keys</strong>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Example Keys</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Runtime</td>
+<td><code>runtime.totem.token</code></td>
+<td>Current token timeout</td>
+</tr>
+<tr>
+<td>Totem</td>
+<td><code>totem.token</code></td>
+<td>TOTEM configuration</td>
+</tr>
+<tr>
+<td>Quorum</td>
+<td><code>quorum.expected_votes</code></td>
+<td>Expected vote count</td>
+</tr>
+<tr>
+<td>Nodelist</td>
+<td><code>nodelist.node.*.ring0_addr</code></td>
+<td>Node addresses</td>
+</tr>
+<tr>
+<td>Logging</td>
+<td><code>logging.to_logfile</code></td>
+<td>Logging configuration</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="configuration">Configuration</h2>
+<h3 id="complete-corosyncconf">Complete corosync.conf</h3>
+<pre class="highlight"><code class="language-conf">totem {
+    version: 2
+    cluster_name: ha-cluster
+
     transport: knet
+
+    # Ring 0 - Primary network
     interface {
         ringnumber: 0
-        bindnetaddr: 192.168.1.10
+        bindnetaddr: 192.168.1.0
+        broadcast: yes
+        mcastport: 5405
     }
+
+    # Ring 1 - Secondary network (redundancy)
     interface {
         ringnumber: 1
-        bindnetaddr: 192.168.2.10
+        bindnetaddr: 10.0.1.0
+        broadcast: yes
+        mcastport: 5406
+    }
+
+    # TOTEM protocol tuning
+    token: 5000
+    token_retransmit: 250
+    hold: 180
+    token_retransmits_before_loss_const: 4
+
+    join: 60
+    consensus: 4800
+    merge: 200
+    downcheck: 1000
+    fail_to_recv_const: 2500
+
+    seqno_unchanged_const: 2000
+    window_size: 50
+    max_messages: 17
+
+    # Security
+    crypto_cipher: aes256
+    crypto_hash: sha256
+}
+
+nodelist {
+    node {
+        ring0_addr: 192.168.1.10
+        ring1_addr: 10.0.1.10
+        nodeid: 1
+        name: node1
+    }
+    node {
+        ring0_addr: 192.168.1.11
+        ring1_addr: 10.0.1.11
+        nodeid: 2
+        name: node2
+    }
+    node {
+        ring0_addr: 192.168.1.12
+        ring1_addr: 10.0.1.12
+        nodeid: 3
+        name: node3
+    }
+}
+
+quorum {
+    provider: corosync_votequorum
+    expected_votes: 3
+    two_node: 0
+    wait_for_all: 0
+    auto_tie_breaker: 1
+    last_man_standing: 1
+    last_man_standing_window: 10000
+}
+
+logging {
+    to_logfile: yes
+    logfile: /var/log/corosync/corosync.log
+    to_syslog: yes
+    timestamp: on
+    debug: off
+    logger_subsys {
+        subsys: QUORUM
+        debug: off
+    }
+}
+
+# IPC service configuration
+quorum {
+    provider: corosync_votequorum
+}
+
+nodelist {
+    # As defined above
+}</code></pre>
+<h3 id="kronosnet-knet-transport">Kronosnet (knet) Transport</h3>
+<p>Kronosnet provides multi-link transport with automatic failover.</p>
+<p><strong>Knet Configuration</strong>:</p>
+<pre class="highlight"><code class="language-conf">totem {
+    version: 2
+    cluster_name: ha-cluster
+    transport: knet
+
+    # Link configuration
+    knet_transport {
+        link_mode: passive
+        link_priority: [100, 50]
+
+        link_0 {
+            link_priority: 100
+            mcastport: 5405
+            ttl: 1
+        }
+
+        link_1 {
+            link_priority: 50
+            mcastport: 5406
+            ttl: 1
+        }
+    }
+
+    interface {
+        ringnumber: 0
+        bindnetaddr: 192.168.1.0
+        mcastport: 5405
+    }
+
+    interface {
+        ringnumber: 1
+        bindnetaddr: 10.0.1.0
+        mcastport: 5406
+    }
+
+    # Crypto configuration
+    crypto_cipher: aes256
+    crypto_hash: sha256
+    crypto_model: nss
+
+    # Compression
+    compress_model: zlib
+    compress_threshold: 1000
+}</code></pre>
+<p><strong>Knet Benefits</strong>:
+- Automatic link failover
+- Traffic prioritization
+- Built-in encryption
+- Compression support
+- Multiple transports per link</p>
+<h3 id="udp-transport-legacy">UDP Transport (Legacy)</h3>
+<pre class="highlight"><code class="language-conf">totem {
+    version: 2
+    cluster_name: ha-cluster
+    transport: udpu
+
+    interface {
+        ringnumber: 0
+        bindnetaddr: 192.168.1.0
+        mcastport: 5405
     }
 }</code></pre>
-<strong>Nifty</strong>: Automatic failover between network links, better performance</p>
-<h3 id="token-timeout-optimization">Token Timeout Optimization</h3>
-<p><pre class="highlight"><code class="language-conf">totem {
-    token: 5000           # Reduce for faster failure detection
-    token_retransmit: 250
+<h2 id="key-features">Key Features</h2>
+<h3 id="virtual-synchrony">Virtual Synchrony</h3>
+<p><strong>Message Ordering</strong>: All nodes receive messages in identical order across cluster views.</p>
+<p><strong>Virtual Synchrony Properties</strong>:
+1. <strong>Total Order</strong>: Single global message order
+2. <strong>Atomic Broadcast</strong>: All or nothing delivery
+3. <strong>View Synchrony</strong>: View changes coordinate with messages
+4. <strong>Safety</strong>: No message loss or duplication</p>
+<p><strong>Use Cases</strong>:
+- Cluster state synchronization
+- Distributed lock management
+- Resource state coordination
+- Configuration distribution</p>
+<h3 id="quorum-management">Quorum Management</h3>
+<p><strong>Quorum States</strong>:
+- <strong>Quorate</strong>: Cluster has majority
+- <strong>Inquorate</strong>: Cluster lacks majority
+- <strong>Recovering</strong>: Quorum being restored</p>
+<p><strong>Quorum Actions</strong>:
+- Quorate: Normal operation
+- Inquorate: Resource fencing, graceful degradation</p>
+<h3 id="configuration-database_1">Configuration Database</h3>
+<p><strong>In-Memory KV Store</strong>:
+- Fast access to cluster state
+- Dynamic reconfiguration
+- Key-value API for applications</p>
+<p><strong>Key Patterns</strong>:
+- <code>config.*</code>: Configuration parameters
+- <code>runtime.*</code>: Runtime statistics
+- <code>statemachine.*</code>: State machine data</p>
+<h2 id="quick-commands">Quick Commands</h2>
+<h3 id="installation">Installation</h3>
+<pre class="highlight"><code class="language-bash"># Debian/Ubuntu
+apt-get install corosync
+
+# RHEL/CentOS
+yum install corosync
+
+# Generate authentication key
+corosync-keygen
+# Default location: /etc/corosync/authkey
+# Permissions: 600</code></pre>
+<h3 id="status-and-monitoring">Status and Monitoring</h3>
+<pre class="highlight"><code class="language-bash"># Check cluster membership
+corosync-cfgtool -s
+
+# Check quorum status
+corosync-quorumtool -s
+
+# View configuration database
+corosync-cmapctl
+
+# Monitor runtime statistics
+corosync-cmapctl -b runtime
+
+# View IPC statistics
+corosync-cmapctl -b stats
+
+# Check node status
+corosync-cmapctl -g runtime.votequorum.node_id</code></pre>
+<h3 id="configuration-management">Configuration Management</h3>
+<pre class="highlight"><code class="language-bash"># Validate configuration
+corosync-cfgtool -v
+
+# View loaded configuration
+corosync-cmapctl -b config
+
+# Reload configuration
+systemctl reload corosync
+
+# Backup configuration
+cp /etc/corosync/corosync.conf /etc/corosync/corosync.conf.bak</code></pre>
+<h3 id="debugging">Debugging</h3>
+<pre class="highlight"><code class="language-bash"># Enable debug logging
+corosync-cmapctl -s logging.debug -t str on
+
+# View message logs
+journalctl -u corosync -f
+
+# Check network connectivity
+corosync-cfgtool -s -i &lt;interface&gt;
+
+# View token statistics
+corosync-cmapctl -b runtime.totem
+
+# Check IPC service status
+corosync-cmapctl -b runtime.services</code></pre>
+<h2 id="nifty-behaviors">Nifty Behaviors</h2>
+<h3 id="kronosnet-multi-link-transport">Kronosnet Multi-Link Transport</h3>
+<pre class="highlight"><code class="language-conf">totem {
+    transport: knet
+
+    interface {
+        ringnumber: 0
+        bindnetaddr: 192.168.1.0
+        mcastport: 5405
+    }
+
+    interface {
+        ringnumber: 1
+        bindnetaddr: 10.0.1.0
+        mcastport: 5406
+    }
 }</code></pre>
-<strong>Nifty</strong>: Faster cluster response to failures</p>
+<p><strong>Nifty</strong>: Automatic failover between network links, better performance, built-in encryption</p>
+<h3 id="token-timeout-optimization">Token Timeout Optimization</h3>
+<pre class="highlight"><code class="language-conf">totem {
+    token: 5000           # Faster failure detection
+    token_retransmit: 250
+    hold: 180
+}</code></pre>
+<p><strong>Nifty</strong>: Faster cluster response to failures</p>
+<h3 id="auto-tie-breaker">Auto Tie-Breaker</h3>
+<pre class="highlight"><code class="language-conf">quorum {
+    provider: corosync_votequorum
+    auto_tie_breaker: 1
+    last_man_standing: 1
+}</code></pre>
+<p><strong>Nifty</strong>: 2-node cluster operation without QDevice</p>
+<h3 id="quorum-device-integration">Quorum Device Integration</h3>
+<pre class="highlight"><code class="language-conf">quorum {
+    provider: qdevice
+    model: net
+    net {
+        host: qdevice.example.com
+        algorithm: lms
+        tie_breaker: lowest
+    }
+}</code></pre>
+<p><strong>Nifty</strong>: External quorum for even-numbered clusters</p>
+<h2 id="protocol-internals">Protocol Internals</h2>
+<h3 id="totem-protocol-details">TOTEM Protocol Details</h3>
+<p><strong>Message Types</strong>:
+1. <strong>Regular Messages</strong>: Application data
+2. <strong>Join Messages</strong>: Node join requests
+3. <strong>Consensus Messages</strong>: Membership agreement
+4. <strong>Merge Messages</strong>: Cluster merge operations</p>
+<p><strong>Ring Operation</strong>:</p>
+<pre class="highlight"><code>Node A -&gt; Token -&gt; Node B -&gt; Token -&gt; Node C -&gt; Token -&gt; Node A</code></pre>
+<p><strong>Token Rotation</strong>:
+1. Sequencer holds token
+2. Processes pending messages
+3. Broadcasts new token with message IDs
+4. Releases token to next node</p>
+<p><strong>View Change</strong>:</p>
+<div class="mermaid">sequenceDiagram
+    participant N1 as Node 1
+    participant N2 as Node 2
+    participant N3 as Node 3
+
+    N1-&gt;&gt;N2: Normal operation
+    N2-&gt;&gt;N3: Normal operation
+    N3-&gt;&gt;N1: Normal operation
+
+    Note over N1: Node failure detected
+
+    N1-&gt;&gt;N2: Join request
+    N2-&gt;&gt;N3: Join request
+    N3-&gt;&gt;N1: Consensus
+
+    Note over N1,N3: New view formed
+
+    N1-&gt;&gt;N2: Resynchronize
+    N2-&gt;&gt;N3: Resynchronize
+</div>
+<h3 id="ipc-service-communication">IPC Service Communication</h3>
+<p><strong>Unix Domain Sockets</strong>:
+- <code>/var/run/corosync/corosync.sock</code>
+- Used by local applications
+- Fast IPC</p>
+<p><strong>Shared Memory</strong>:
+- Used for high-performance communication
+- Zero-copy message passing</p>
+<p><strong>IPC Protocol</strong>:
+<pre class="highlight"><code class="language-c">// Simplified IPC flow
+1. Application opens IPC connection
+2. Application subscribes to notification type
+3. Corosync sends messages to subscribers
+4. Application acknowledges receipt
+5. Corosync tracks delivery state</code></pre></p>
+<h2 id="performance-tuning">Performance Tuning</h2>
+<h3 id="network-optimization">Network Optimization</h3>
+<pre class="highlight"><code class="language-conf">totem {
+    # Reduce token timeout for faster failover
+    token: 3000
+    token_retransmit: 200
+
+    # Increase window for high latency
+    window_size: 100
+
+    # Tune for high throughput
+    max_messages: 32
+}</code></pre>
+<h3 id="memory-optimization">Memory Optimization</h3>
+<pre class="highlight"><code class="language-conf">totem {
+    # Reduce memory usage
+    max_messages: 10
+    window_size: 30
+}</code></pre>
+<h3 id="cpu-optimization">CPU Optimization</h3>
+<pre class="highlight"><code class="language-conf"># Disable compression for CPU-bound clusters
+totem {
+    compress_model: none
+}
+
+# Use faster crypto
+totem {
+    crypto_cipher: aes128
+    crypto_hash: sha1
+}</code></pre>
 <h2 id="security">Security</h2>
+<h3 id="authentication-key">Authentication Key</h3>
+<p><strong>Key Generation</strong>:
+<pre class="highlight"><code class="language-bash">corosync-keygen
+# Uses /dev/random
+# Creates 128-byte key
+# Stored in /etc/corosync/authkey</code></pre></p>
+<p><strong>Key Distribution</strong>:
+<pre class="highlight"><code class="language-bash"># Copy to all nodes
+scp /etc/corosync/authkey node2:/etc/corosync/
+scp /etc/corosync/authkey node3:/etc/corosync/</code></pre></p>
+<p><strong>Key Permissions</strong>:
+<pre class="highlight"><code class="language-bash">chmod 600 /etc/corosync/authkey
+chown root:root /etc/corosync/authkey</code></pre></p>
+<h3 id="transport-security">Transport Security</h3>
+<p><strong>Knet Encryption</strong>:
+<pre class="highlight"><code class="language-conf">totem {
+    transport: knet
+    crypto_cipher: aes256
+    crypto_hash: sha256
+    crypto_model: nss
+}</code></pre></p>
+<p><strong>Network Isolation</strong>:
+- Use dedicated cluster network
+- Separate management traffic
+- VLAN segmentation</p>
+<h3 id="access-control">Access Control</h3>
+<p><strong>IPC Permissions</strong>:
+<pre class="highlight"><code class="language-bash"># Default: root only
+chmod 600 /var/run/corosync/corosync.sock
+
+# Custom: Group access
+chown root:corosync /var/run/corosync/corosync.sock
+chmod 660 /var/run/corosync/corosync.sock</code></pre></p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-issues">Common Issues</h3>
+<h4 id="token-timeout-errors">Token Timeout Errors</h4>
+<p><strong>Symptoms</strong>:
+- <code>corosync-cfgtool -s</code> shows timeouts
+- Cluster instability</p>
+<p><strong>Solution</strong>:
+<pre class="highlight"><code class="language-conf">totem {
+    token: 10000
+    token_retransmit: 1000
+}</code></pre></p>
+<h4 id="quorum-loss">Quorum Loss</h4>
+<p><strong>Symptoms</strong>:
+- <code>corosync-quorumtool -s</code> shows "Inquorate"
+- Cluster degraded</p>
+<p><strong>Solutions</strong>:
+<pre class="highlight"><code class="language-bash"># Check network connectivity
+ping node2
+ping node3
+
+# Verify node count
+corosync-quorumtool -s
+
+# Force quorum (emergency only)
+corosync-quorumtool -f
+
+# Add QDevice for 2-node clusters</code></pre></p>
+<h4 id="authentication-failures">Authentication Failures</h4>
+<p><strong>Symptoms</strong>:
+- <code>authkey</code> errors in logs
+- Nodes cannot join cluster</p>
+<p><strong>Solution</strong>:
+<pre class="highlight"><code class="language-bash"># Regenerate key on all nodes
+rm /etc/corosync/authkey
+corosync-keygen
+
+# Distribute key
+scp /etc/corosync/authkey node2:/etc/corosync/
+scp /etc/corosync/authkey node3:/etc/corosync/
+
+# Restart services
+systemctl restart corosync</code></pre></p>
+<h4 id="node-cannot-join-cluster">Node Cannot Join Cluster</h4>
+<p><strong>Symptoms</strong>:
+- Node not listed in membership
+- Firewall blocking traffic</p>
+<p><strong>Solution</strong>:
+<pre class="highlight"><code class="language-bash"># Check firewall
+iptables -L -n | grep 5405
+
+# Allow cluster traffic
+iptables -A INPUT -p udp --dport 5405 -j ACCEPT
+iptables -A INPUT -p udp --dport 5406 -j ACCEPT
+
+# Check network connectivity
+nc -zuv node1 5405
+nc -zuv node1 5406
+
+# Verify configuration
+corosync-cfgtool -v</code></pre></p>
+<h3 id="debug-commands">Debug Commands</h3>
+<pre class="highlight"><code class="language-bash"># Enable verbose logging
+corosync-cmapctl -s logging.debug -t str on
+systemctl restart corosync
+
+# View detailed logs
+journalctl -u corosync -f
+
+# Check all interfaces
+corosync-cfgtool -s -i all
+
+# Dump configuration
+corosync-cmapctl &gt; corosync_config.txt
+
+# Monitor runtime statistics
+corosync-cmapctl -b runtime -b stats -w
+
+# Check IPC connections
+corosync-cmapctl -b runtime.services</code></pre>
+<h3 id="log-analysis">Log Analysis</h3>
+<p><strong>Common Log Messages</strong>:</p>
+<pre class="highlight"><code># Normal operation
+[MAIN  ] Corosync Cluster Engine exiting normally
+[TOTEM ] The token was lost 12 times
+
+# Quorum loss
+[QUORUM] Quorum lost, inquorate cluster
+
+# Node failure
+[MAIN  ] Node 1 left the cluster
+
+# Configuration error
+[CFG   ] Invalid configuration: unknown token</code></pre>
+<p><strong>Log Locations</strong>:
+- <code>/var/log/corosync/corosync.log</code> - Corosync logs
+- <code>/var/log/syslog</code> - System logs (if enabled)
+- <code>journalctl -u corosync</code> - Systemd logs</p>
+<h2 id="best-practices">Best Practices</h2>
+<h3 id="production-deployment">Production Deployment</h3>
+<ol>
+<li><strong>Redundant Networks</strong>: Use at least 2 ring interfaces</li>
+<li><strong>Proper Token Tuning</strong>: Balance failover speed vs stability</li>
+<li><strong>Quorum Device</strong>: Use QDevice for even-numbered clusters</li>
+<li><strong>Secure Keys</strong>: Protect authkey with proper permissions</li>
+<li><strong>Network Isolation</strong>: Dedicate cluster network</li>
+<li><strong>Monitoring</strong>: Set up alerts for quorum and membership changes</li>
+</ol>
+<h3 id="configuration-checklist">Configuration Checklist</h3>
 <ul>
-<li>Protect authentication key: <code>chmod 600 /etc/corosync/authkey</code></li>
-<li>Use encrypted transport (knet)</li>
-<li>Isolate cluster network</li>
+<li>[ ] Generate and distribute authkey</li>
+<li>[ ] Configure at least 2 ring interfaces</li>
+<li>[ ] Set appropriate token timeouts</li>
+<li>[ ] Configure quorum for node count</li>
+<li>[ ] Enable logging to file</li>
+<li>[ ] Test failover scenarios</li>
+<li>[ ] Verify network connectivity</li>
+<li>[ ] Set up monitoring</li>
 </ul>
+<h3 id="network-design">Network Design</h3>
+<p><strong>Physical Network</strong>:
+- Separate cluster network from production
+- Use 10Gbps or faster
+- Redundant switches</p>
+<p><strong>Network Segments</strong>:
+- Cluster: 192.168.1.0/24
+- Management: 10.0.1.0/24
+- Storage: 10.0.2.0/24</p>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Repository: https://github.com/corosync/corosync</li>
-<li>Documentation: https://corosync.github.io/corosync/</li>
+<li><strong>Repository</strong>: https://github.com/corosync/corosync</li>
+<li><strong>Documentation</strong>: https://corosync.github.io/corosync/</li>
+<li><strong>Mailing List</strong>: https://lists.corosync.org/mailman/listinfo/corosync</li>
 </ul>
+<h3 id="key-source-locations">Key Source Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TOTEM</td>
+<td><code>exec/totem*</code></td>
+<td>TOTEM protocol implementation</td>
+</tr>
+<tr>
+<td>Quorum</td>
+<td><code>exec/quorum.c</code></td>
+<td>Quorum system</td>
+</tr>
+<tr>
+<td>Config DB</td>
+<td><code>exec/cmap.c</code></td>
+<td>Configuration database</td>
+</tr>
+<tr>
+<td>IPC</td>
+<td><code>exec/ipc.c</code></td>
+<td>IPC service</td>
+</tr>
+<tr>
+<td>Logging</td>
+<td><code>exec/logsys.c</code></td>
+<td>Logging system</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -731,11 +1427,56 @@ corosync-cmapctl</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#totem-protocol">
+            TOTEM Protocol
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quorum-system">
+            Quorum System
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#configuration-database">
+            Configuration Database
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#configuration">
+            Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#complete-corosyncconf">
+            Complete corosync.conf
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#kronosnet-knet-transport">
+            Kronosnet (knet) Transport
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#udp-transport-legacy">
+            UDP Transport (Legacy)
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
             Key Features
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#virtual-synchrony">
+            Virtual Synchrony
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quorum-management">
+            Quorum Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#configuration-database_1">
+            Configuration Database
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#installation">
+            Installation
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#status-and-monitoring">
+            Status and Monitoring
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#configuration-management">
+            Configuration Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#debugging">
+            Debugging
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
             Nifty Behaviors
@@ -746,11 +1487,74 @@ corosync-cmapctl</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#token-timeout-optimization">
             Token Timeout Optimization
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#auto-tie-breaker">
+            Auto Tie-Breaker
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quorum-device-integration">
+            Quorum Device Integration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#protocol-internals">
+            Protocol Internals
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#totem-protocol-details">
+            TOTEM Protocol Details
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ipc-service-communication">
+            IPC Service Communication
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#performance-tuning">
+            Performance Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-optimization">
+            Network Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#memory-optimization">
+            Memory Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cpu-optimization">
+            CPU Optimization
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#security">
             Security
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#authentication-key">
+            Authentication Key
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#transport-security">
+            Transport Security
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#access-control">
+            Access Control
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#common-issues">
+            Common Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#debug-commands">
+            Debug Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#log-analysis">
+            Log Analysis
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#production-deployment">
+            Production Deployment
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#configuration-checklist">
+            Configuration Checklist
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-design">
+            Network Design
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-source-locations">
+            Key Source Locations
         </a>
 </div>
 <div class="h-12"></div>

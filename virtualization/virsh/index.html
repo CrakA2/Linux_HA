@@ -767,30 +767,696 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>Command-line interface for managing libvirt virtualization.</p>
-<h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># VM Management
-virsh list                   # List running VMs
-virsh list --all            # List all VMs
-virsh start &lt;vm-name&gt;        # Start VM
-virsh shutdown &lt;vm-name&gt;     # Shutdown VM
-virsh destroy &lt;vm-name&gt;      # Force stop VM
-virsh undefine &lt;vm-name&gt;    # Remove VM
+    <p>Command-line interface for managing libvirt virtualization with comprehensive VM lifecycle management.</p>
+<h2 id="overview">Overview</h2>
+<p>virsh provides a unified interface for managing virtual machines, networks, storage, and other libvirt resources.</p>
+<p><strong>virsh Connection Modes</strong>:
+<pre class="highlight"><code class="language-bash"># Local connection
+virsh
 
-# VM Information
-virsh dominfo &lt;vm-name&gt;      # Domain information
-virsh dumpxml &lt;vm-name&gt;      # XML configuration
-virsh vcpuinfo &lt;vm-name&gt;     # VCPU information
-virsh dommemstat &lt;vm-name&gt;   # Memory statistics
+# Remote connection
+virsh -c qemu+ssh://user@host/system
+virsh -c qemu+tcp://host/system
+virsh -c qemu+tls://host/system
 
-# Snapshot Management
-virsh snapshot-create &lt;vm-name&gt; &lt;snap-name&gt;
-virsh snapshot-list &lt;vm-name&gt;
-virsh snapshot-revert &lt;vm-name&gt; &lt;snap-name&gt;
+# Read-only connection
+virsh -r</code></pre></p>
+<h2 id="domain-lifecycle-management">Domain Lifecycle Management</h2>
+<h3 id="vm-creation">VM Creation</h3>
+<pre class="highlight"><code class="language-bash"># Create VM from XML
+virsh define vm1.xml
 
-# Console Access
-virsh console &lt;vm-name&gt;
-virsh qemu-monitor-command &lt;vm-name&gt; "info status"</code></pre>
+# Create VM from ISO (interactive)
+virt-install --name vm1 --memory 2048 --vcpus 2 \
+    --disk path=/var/lib/libvirt/images/vm1.qcow2,size=20 \
+    --cdrom /path/to/ubuntu.iso \
+    --graphics vnc
+
+# Clone existing VM
+virt-clone --original vm1 --name vm2 --file /var/lib/libvirt/images/vm2.qcow2</code></pre>
+<h3 id="vm-startstop">VM Start/Stop</h3>
+<pre class="highlight"><code class="language-bash"># Start VM
+virsh start vm1
+
+# Start VM with autostart
+virsh start vm1 --console
+
+# Shutdown VM (graceful)
+virsh shutdown vm1
+
+# Shutdown with force
+virsh shutdown vm1 --mode=force
+
+# Destroy VM (force stop)
+virsh destroy vm1
+
+# Reboot VM
+virsh reboot vm1
+
+# Reset VM (hardware reset)
+virsh reset vm1
+
+# Suspend VM
+virsh suspend vm1
+
+# Resume VM
+virsh resume vm1</code></pre>
+<h3 id="vm-deletion">VM Deletion</h3>
+<pre class="highlight"><code class="language-bash"># Undefine VM (remove configuration)
+virsh undefine vm1
+
+# Undefine with storage
+virsh undefine vm1 --remove-all-storage
+
+# Undefine with snapshots
+virsh undefine vm1 --remove-all-storage --snapshots-metadata
+
+# Undefine with NVRAM
+virsh undefine vm1 --nvram</code></pre>
+<h3 id="vm-autostart">VM Autostart</h3>
+<pre class="highlight"><code class="language-bash"># Enable autostart
+virsh autostart vm1
+
+# Disable autostart
+virsh autostart --disable vm1
+
+# List autostart VMs
+virsh list --autostart</code></pre>
+<h2 id="vm-information-and-monitoring">VM Information and Monitoring</h2>
+<h3 id="domain-information">Domain Information</h3>
+<pre class="highlight"><code class="language-bash"># Domain information
+virsh dominfo vm1
+
+# Domain ID and UUID
+virsh domid vm1
+virsh domuuid vm1
+
+# Domain state
+virsh domstate vm1
+
+# Domain flags
+virsh domcontrol vm1
+
+# Domain time
+virsh domtime vm1</code></pre>
+<h3 id="cpu-information">CPU Information</h3>
+<pre class="highlight"><code class="language-bash"># VCPU information
+virsh vcpuinfo vm1
+
+# VCPU pinning
+virsh vcpupin vm1
+
+# Set VCPU pinning
+virsh vcpupin vm1 0 0-1
+virsh vcpupin vm1 1 2-3
+
+# VCPU count
+virsh vcpuinfo vm1
+virsh setvcpus vm1 4 --live
+virsh setvcpus vm1 4 --config
+virsh setvcpus vm1 4 --current
+
+# Maximum VCPU
+virsh maxvcpus vm1</code></pre>
+<h3 id="memory-information">Memory Information</h3>
+<pre class="highlight"><code class="language-bash"># Memory statistics
+virsh dommemstat vm1
+
+# Set memory
+virsh setmem vm1 2G --live
+virsh setmem vm1 2G --config
+virsh setmem vm1 2G --current
+
+# Maximum memory
+virsh setmaxmem vm1 4G --live
+
+# Memory balloon
+virsh dommemstat vm1 | grep actual</code></pre>
+<h3 id="device-information">Device Information</h3>
+<pre class="highlight"><code class="language-bash"># Block devices
+virsh domblklist vm1
+virsh domblkinfo vm1 vda
+
+# Network devices
+virsh domiflist vm1
+virsh domifstat vm1 vnet0
+
+# All devices
+virsh dumpxml vm1 | grep '&lt;disk'
+virsh dumpxml vm1 | grep '&lt;interface'</code></pre>
+<h3 id="performance-statistics">Performance Statistics</h3>
+<pre class="highlight"><code class="language-bash"># Block statistics
+virsh domblkstat vm1
+
+# Network statistics
+virsh domifstat vm1 vnet0
+
+# CPU time
+virsh cpu-stats vm1
+
+# CPU usage (total)
+virsh cpu-stats vm1 --total
+
+# CPU usage (per vcpu)
+virsh cpu-stats vm1</code></pre>
+<h2 id="vm-configuration">VM Configuration</h2>
+<h3 id="xml-configuration">XML Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Dump XML configuration
+virsh dumpxml vm1
+
+# Dump XML to file
+virsh dumpxml vm1 &gt; vm1.xml
+
+# Edit XML configuration
+virsh edit vm1
+
+# Edit specific network interface
+virsh net-edit default
+
+# Validate XML
+virsh define vm1.xml</code></pre>
+<h3 id="device-management">Device Management</h3>
+<pre class="highlight"><code class="language-bash"># Attach device
+virsh attach-device vm1 disk.xml
+
+# Attach device from command
+virsh attach-device vm1 --file disk.xml --persistent
+
+# Detach device
+virsh detach-device vm1 disk.xml
+
+# Update device
+virsh update-device vm1 disk.xml
+
+# List devices
+virsh domblklist vm1
+virsh domiflist vm1</code></pre>
+<p><strong>Disk Device XML</strong>:
+<pre class="highlight"><code class="language-xml">&lt;disk type='file' device='disk'&gt;
+  &lt;driver name='qemu' type='qcow2'/&gt;
+  &lt;source file='/var/lib/libvirt/images/disk.qcow2'/&gt;
+  &lt;target dev='vdb' bus='virtio'/&gt;
+&lt;/disk&gt;</code></pre></p>
+<p><strong>Network Device XML</strong>:
+<pre class="highlight"><code class="language-xml">&lt;interface type='network'&gt;
+  &lt;mac address='52:54:00:71:b1:b6'/&gt;
+  &lt;source network='default'/&gt;
+  &lt;model type='virtio'/&gt;
+&lt;/interface&gt;</code></pre></p>
+<h2 id="console-access">Console Access</h2>
+<h3 id="serial-console">Serial Console</h3>
+<pre class="highlight"><code class="language-bash"># Connect to serial console
+virsh console vm1
+
+# Connect to specific console
+virsh console vm1 --devname hvc0
+
+# Force console connection
+virsh console vm1 --force</code></pre>
+<h3 id="vnc-console">VNC Console</h3>
+<pre class="highlight"><code class="language-bash"># Find VNC display
+virsh vncdisplay vm1
+
+# Find VNC port
+virsh qemu-monitor-command vm1 "info vnc"</code></pre>
+<h3 id="qemu-monitor">QEMU Monitor</h3>
+<pre class="highlight"><code class="language-bash"># QEMU monitor command
+virsh qemu-monitor-command vm1 "info status"
+virsh qemu-monitor-command vm1 "info cpus"
+virsh qemu-monitor-command vm1 "info block"
+virsh qemu-monitor-command vm1 "info network"
+
+# QMP command
+virsh qemu-monitor-command vm1 '{"execute":"query-status"}'</code></pre>
+<h2 id="snapshot-management">Snapshot Management</h2>
+<h3 id="creating-snapshots">Creating Snapshots</h3>
+<pre class="highlight"><code class="language-bash"># Create snapshot
+virsh snapshot-create vm1
+
+# Create snapshot with name
+virsh snapshot-create-as vm1 snap1
+
+# Create snapshot from XML
+virsh snapshot-create vm1 snap.xml
+
+# Create snapshot with description
+virsh snapshot-create-as vm1 snap1 \
+    --description "Snapshot before update"</code></pre>
+<p><strong>Snapshot XML</strong>:
+<pre class="highlight"><code class="language-xml">&lt;domainsnapshot&gt;
+  &lt;name&gt;snap1&lt;/name&gt;
+  &lt;description&gt;Snapshot before update&lt;/description&gt;
+  &lt;memory snapshot='no'/&gt;
+  &lt;disks&gt;
+    &lt;disk name='vda' snapshot='internal'/&gt;
+  &lt;/disks&gt;
+&lt;/domainsnapshot&gt;</code></pre></p>
+<h3 id="managing-snapshots">Managing Snapshots</h3>
+<pre class="highlight"><code class="language-bash"># List snapshots
+virsh snapshot-list vm1
+
+# List snapshots with tree
+virsh snapshot-list vm1 --tree
+
+# Snapshot information
+virsh snapshot-info vm1 snap1
+
+# Dump snapshot XML
+virsh snapshot-dumpxml vm1 snap1
+
+# Snapshot parent
+virsh snapshot-parent vm1 snap1</code></pre>
+<h3 id="reverting-snapshots">Reverting Snapshots</h3>
+<pre class="highlight"><code class="language-bash"># Revert to snapshot
+virsh snapshot-revert vm1 snap1
+
+# Revert with force
+virsh snapshot-revert vm1 snap1 --force
+
+# Revert current state
+virsh snapshot-revert vm1 --current</code></pre>
+<h3 id="deleting-snapshots">Deleting Snapshots</h3>
+<pre class="highlight"><code class="language-bash"># Delete snapshot
+virsh snapshot-delete vm1 snap1
+
+# Delete all snapshots
+virsh snapshot-list vm1 --name | xargs -I {} virsh snapshot-delete vm1 {}</code></pre>
+<h2 id="migration">Migration</h2>
+<h3 id="live-migration">Live Migration</h3>
+<pre class="highlight"><code class="language-bash"># Live migration
+virsh migrate --live vm1 qemu+ssh://dest/system
+
+# Live migration with compression
+virsh migrate --live --compress vm1 qemu+ssh://dest/system
+
+# Live migration with timeout
+virsh migrate --live --timeout 600 vm1 qemu+ssh://dest/system
+
+# Live migration with bandwidth limit
+virsh migrate --live --bandwidth 100 vm1 qemu+ssh://dest/system</code></pre>
+<h3 id="cold-migration">Cold Migration</h3>
+<pre class="highlight"><code class="language-bash"># Cold migration
+virsh migrate vm1 qemu+ssh://dest/system
+
+# Cold migration with XML
+virsh migrate --xml vm1.xml qemu+ssh://dest/system</code></pre>
+<h3 id="migration-options">Migration Options</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--live</td>
+<td>Live migration</td>
+</tr>
+<tr>
+<td>--p2p</td>
+<td>Peer-to-peer migration</td>
+</tr>
+<tr>
+<td>--direct</td>
+<td>Direct migration</td>
+</tr>
+<tr>
+<td>--tunnelled</td>
+<td>Tunnelled migration</td>
+</tr>
+<tr>
+<td>--persistent</td>
+<td>Persist on destination</td>
+</tr>
+<tr>
+<td>--undefinesource</td>
+<td>Undefine source</td>
+</tr>
+<tr>
+<td>--persistent</td>
+<td>Make destination persistent</td>
+</tr>
+<tr>
+<td>--suspend</td>
+<td>Suspend on migration</td>
+</tr>
+<tr>
+<td>--copy-storage-all</td>
+<td>Copy all storage</td>
+</tr>
+<tr>
+<td>--copy-storage-inc</td>
+<td>Copy storage incrementally</td>
+</tr>
+<tr>
+<td>--compress</td>
+<td>Compress migration data</td>
+</tr>
+<tr>
+<td>--abort-on-error</td>
+<td>Abort on errors</td>
+</tr>
+<tr>
+<td>--timeout</td>
+<td>Set timeout</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="migration-monitoring">Migration Monitoring</h3>
+<pre class="highlight"><code class="language-bash"># Monitor migration
+virsh migrate --live --verbose vm1 qemu+ssh://dest/system
+
+# Monitor QEMU monitor
+virsh qemu-monitor-command vm1 "info migrate"
+
+# Cancel migration
+virsh migrate vm1 --abort</code></pre>
+<h2 id="network-management">Network Management</h2>
+<h3 id="network-operations">Network Operations</h3>
+<pre class="highlight"><code class="language-bash"># List networks
+virsh net-list
+virsh net-list --all
+virsh net-list --inactive
+virsh net-list --active
+
+# Network information
+virsh net-info default
+
+# Dump network XML
+virsh net-dumpxml default
+
+# Define network
+virsh net-define network.xml
+
+# Undefine network
+virsh net-undefine default
+
+# Start network
+virsh net-start default
+
+# Stop network
+virsh net-stop default
+
+# Network autostart
+virsh net-autostart default
+virsh net-autostart --disable default</code></pre>
+<p><strong>Network XML</strong>:
+<pre class="highlight"><code class="language-xml">&lt;network&gt;
+  &lt;name&gt;default&lt;/name&gt;
+  &lt;forward mode='nat'/&gt;
+  &lt;bridge name='virbr0' stp='on' delay='0'/&gt;
+  &lt;ip address='192.168.122.1' netmask='255.255.255.0'&gt;
+    &lt;dhcp&gt;
+      &lt;range start='192.168.122.2' end='192.168.122.254'/&gt;
+    &lt;/dhcp&gt;
+  &lt;/ip&gt;
+&lt;/network&gt;</code></pre></p>
+<h2 id="storage-management">Storage Management</h2>
+<h3 id="storage-pool-operations">Storage Pool Operations</h3>
+<pre class="highlight"><code class="language-bash"># List storage pools
+virsh pool-list
+virsh pool-list --all
+virsh pool-list --inactive
+virsh pool-list --active
+
+# Pool information
+virsh pool-info default
+
+# Dump pool XML
+virsh pool-dumpxml default
+
+# Define pool
+virsh pool-define pool.xml
+
+# Undefine pool
+virsh pool-undefine default
+
+# Build pool
+virsh pool-build default
+
+# Start pool
+virsh pool-start default
+
+# Stop pool
+virsh pool-stop default
+
+# Pool autostart
+virsh pool-autostart default
+virsh pool-autostart --disable default</code></pre>
+<p><strong>Storage Pool XML</strong>:
+<pre class="highlight"><code class="language-xml">&lt;pool type='dir'&gt;
+  &lt;name&gt;default&lt;/name&gt;
+  &lt;target&gt;
+    &lt;path&gt;/var/lib/libvirt/images&lt;/path&gt;
+    &lt;permissions&gt;
+      &lt;mode&gt;0755&lt;/mode&gt;
+      &lt;owner&gt;-1&lt;/owner&gt;
+      &lt;group&gt;-1&lt;/group&gt;
+    &lt;/permissions&gt;
+  &lt;/target&gt;
+&lt;/pool&gt;</code></pre></p>
+<h3 id="storage-volume-operations">Storage Volume Operations</h3>
+<pre class="highlight"><code class="language-bash"># List volumes
+virsh vol-list default
+
+# Volume information
+virsh vol-info vm1.qcow2
+
+# Dump volume XML
+virsh vol-dumpxml vm1.qcow2
+
+# Create volume
+virsh vol-create-as default vm1.qcow2 20G
+
+# Create volume from XML
+virsh vol-create default volume.xml
+
+# Delete volume
+virsh vol-delete default vm1.qcow2
+
+# Upload to volume
+virsh vol-upload default vm1.qcow2 disk.qcow2
+
+# Download from volume
+virsh vol-download default vm1.qcow2 disk.qcow2
+
+# Clone volume
+virsh vol-clone default vm1.qcow2 vm2.qcow2
+
+# Wipe volume
+virsh vol-wipe default vm1.qcow2
+
+# Resize volume
+virsh vol-resize default vm1.qcow2 30G</code></pre>
+<h2 id="secret-management">Secret Management</h2>
+<h3 id="secret-operations">Secret Operations</h3>
+<pre class="highlight"><code class="language-bash"># Define secret
+cat &gt; secret.xml &lt;&lt;EOF
+&lt;secret ephemeral='no' private='no'&gt;
+  &lt;description&gt;libvirt secret&lt;/description&gt;
+  &lt;usage type='ceph'&gt;
+    &lt;name&gt;client.admin secret&lt;/name&gt;
+  &lt;/usage&gt;
+&lt;/secret&gt;
+EOF
+
+virsh secret-define secret.xml
+
+# Set secret value
+virsh secret-set-value secret.xml /path/to/key
+
+# Get secret value
+virsh secret-get-value secret.xml
+
+# Delete secret
+virsh secret-undefine secret.xml
+
+# List secrets
+virsh secret-list</code></pre>
+<h2 id="advanced-commands">Advanced Commands</h2>
+<h3 id="guest-operations">Guest Operations</h3>
+<pre class="highlight"><code class="language-bash"># Guest agent command
+virsh qemu-agent-command vm1 '{"execute":"guest-ping"}'
+
+# Guest shutdown
+virsh qemu-agent-command vm1 '{"execute":"guest-shutdown","arguments":{"mode":"poweroff"}}'
+
+# Guest info
+virsh qemu-agent-command vm1 '{"execute":"guest-info"}'</code></pre>
+<h3 id="host-management">Host Management</h3>
+<pre class="highlight"><code class="language-bash"># Node info
+virsh nodeinfo
+
+# Host capabilities
+virsh capabilities
+
+# CPU models
+virsh cpu-models
+
+# Hostname
+virsh hostname
+
+# Sysinfo
+virsh sysinfo</code></pre>
+<h3 id="version-information">Version Information</h3>
+<pre class="highlight"><code class="language-bash"># Version
+virsh version
+
+# Compiled information
+virsh version
+
+# Daemon version
+virsh version --daemon</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="vm-issues">VM Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check VM logs
+tail -f /var/log/libvirt/qemu/vm1.log
+
+# Check libvirt logs
+tail -f /var/log/libvirt/libvirtd.log
+
+# Check VM status
+virsh domstate vm1
+virsh domcontrol vm1
+
+# Check XML configuration
+virsh dumpxml vm1
+
+# Check console
+virsh console vm1</code></pre>
+<h3 id="network-issues">Network Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check network status
+virsh net-list --all
+
+# Check network XML
+virsh net-dumpxml default
+
+# Check network logs
+journalctl -u libvirtd -f
+
+# Check bridge
+brctl show
+ip addr show virbr0</code></pre>
+<h3 id="storage-issues">Storage Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check pool status
+virsh pool-list --all
+
+# Check pool XML
+virsh pool-dumpxml default
+
+# Check volume status
+virsh vol-list default
+
+# Check storage logs
+journalctl -u libvirtd -f</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Use --persistent</strong> for permanent changes</li>
+<li><strong>Create snapshots</strong> before major changes</li>
+<li><strong>Test migration</strong> before production</li>
+<li><strong>Use proper storage</strong> for volumes</li>
+<li><strong>Monitor VMs</strong> regularly</li>
+<li><strong>Use autostart</strong> for critical VMs</li>
+<li><strong>Document configurations</strong> with XML</li>
+<li><strong>Test backups</strong> regularly</li>
+<li><strong>Use virsh edit</strong> for configuration changes</li>
+<li><strong>Check logs</strong> for troubleshooting</li>
+</ol>
+<h2 id="quick-reference">Quick Reference</h2>
+<h3 id="common-commands">Common Commands</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>virsh list</code></td>
+<td>List running VMs</td>
+</tr>
+<tr>
+<td><code>virsh list --all</code></td>
+<td>List all VMs</td>
+</tr>
+<tr>
+<td><code>virsh start vm1</code></td>
+<td>Start VM</td>
+</tr>
+<tr>
+<td><code>virsh shutdown vm1</code></td>
+<td>Shutdown VM</td>
+</tr>
+<tr>
+<td><code>virsh destroy vm1</code></td>
+<td>Force stop VM</td>
+</tr>
+<tr>
+<td><code>virsh reboot vm1</code></td>
+<td>Reboot VM</td>
+</tr>
+<tr>
+<td><code>virsh suspend vm1</code></td>
+<td>Suspend VM</td>
+</tr>
+<tr>
+<td><code>virsh resume vm1</code></td>
+<td>Resume VM</td>
+</tr>
+<tr>
+<td><code>virsh define vm1.xml</code></td>
+<td>Define VM</td>
+</tr>
+<tr>
+<td><code>virsh undefine vm1</code></td>
+<td>Remove VM</td>
+</tr>
+<tr>
+<td><code>virsh dumpxml vm1</code></td>
+<td>Export XML</td>
+</tr>
+<tr>
+<td><code>virsh edit vm1</code></td>
+<td>Edit XML</td>
+</tr>
+<tr>
+<td><code>virsh dominfo vm1</code></td>
+<td>VM information</td>
+</tr>
+<tr>
+<td><code>virsh domstate vm1</code></td>
+<td>VM state</td>
+</tr>
+<tr>
+<td><code>virsh console vm1</code></td>
+<td>Connect console</td>
+</tr>
+<tr>
+<td><code>virsh snapshot-create vm1</code></td>
+<td>Create snapshot</td>
+</tr>
+<tr>
+<td><code>virsh snapshot-list vm1</code></td>
+<td>List snapshots</td>
+</tr>
+<tr>
+<td><code>virsh snapshot-revert vm1 snap1</code></td>
+<td>Revert snapshot</td>
+</tr>
+<tr>
+<td><code>virsh migrate --live vm1 dest</code></td>
+<td>Live migration</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="documentation">Documentation</h2>
+<ul>
+<li><strong>virsh Manual</strong>: <code>man virsh</code></li>
+<li><strong>libvirt Documentation</strong>: https://libvirt.org/docs/</li>
+<li><strong>virsh Cheat Sheet</strong>: https://libvirt.org/virshcmdref/</li>
+</ul>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1019,6 +1685,348 @@ virsh qemu-monitor-command &lt;vm-name&gt; "info status"</code></pre>
         
         
         
+        
+        <a href="#overview"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Overview
+        </a>
+        
+
+        
+        <a href="#domain-lifecycle-management"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Domain Lifecycle Management
+        </a>
+        
+        
+        <a href="#vm-creation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            VM Creation
+        </a>
+        
+        <a href="#vm-startstop"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            VM Start/Stop
+        </a>
+        
+        <a href="#vm-deletion"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            VM Deletion
+        </a>
+        
+        <a href="#vm-autostart"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            VM Autostart
+        </a>
+        
+        
+
+        
+        <a href="#vm-information-and-monitoring"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            VM Information and Monitoring
+        </a>
+        
+        
+        <a href="#domain-information"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Domain Information
+        </a>
+        
+        <a href="#cpu-information"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            CPU Information
+        </a>
+        
+        <a href="#memory-information"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Memory Information
+        </a>
+        
+        <a href="#device-information"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Device Information
+        </a>
+        
+        <a href="#performance-statistics"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Performance Statistics
+        </a>
+        
+        
+
+        
+        <a href="#vm-configuration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            VM Configuration
+        </a>
+        
+        
+        <a href="#xml-configuration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            XML Configuration
+        </a>
+        
+        <a href="#device-management"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Device Management
+        </a>
+        
+        
+
+        
+        <a href="#console-access"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Console Access
+        </a>
+        
+        
+        <a href="#serial-console"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Serial Console
+        </a>
+        
+        <a href="#vnc-console"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            VNC Console
+        </a>
+        
+        <a href="#qemu-monitor"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            QEMU Monitor
+        </a>
+        
+        
+
+        
+        <a href="#snapshot-management"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Snapshot Management
+        </a>
+        
+        
+        <a href="#creating-snapshots"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Creating Snapshots
+        </a>
+        
+        <a href="#managing-snapshots"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Managing Snapshots
+        </a>
+        
+        <a href="#reverting-snapshots"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Reverting Snapshots
+        </a>
+        
+        <a href="#deleting-snapshots"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Deleting Snapshots
+        </a>
+        
+        
+
+        
+        <a href="#migration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Migration
+        </a>
+        
+        
+        <a href="#live-migration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Live Migration
+        </a>
+        
+        <a href="#cold-migration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Cold Migration
+        </a>
+        
+        <a href="#migration-options"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Migration Options
+        </a>
+        
+        <a href="#migration-monitoring"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Migration Monitoring
+        </a>
+        
+        
+
+        
+        <a href="#network-management"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Network Management
+        </a>
+        
+        
+        <a href="#network-operations"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Network Operations
+        </a>
+        
+        
+
+        
+        <a href="#storage-management"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Storage Management
+        </a>
+        
+        
+        <a href="#storage-pool-operations"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Storage Pool Operations
+        </a>
+        
+        <a href="#storage-volume-operations"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Storage Volume Operations
+        </a>
+        
+        
+
+        
+        <a href="#secret-management"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Secret Management
+        </a>
+        
+        
+        <a href="#secret-operations"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Secret Operations
+        </a>
+        
+        
+
+        
+        <a href="#advanced-commands"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Advanced Commands
+        </a>
+        
+        
+        <a href="#guest-operations"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Guest Operations
+        </a>
+        
+        <a href="#host-management"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Host Management
+        </a>
+        
+        <a href="#version-information"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Version Information
+        </a>
+        
+        
+
+        
+        <a href="#troubleshooting"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Troubleshooting
+        </a>
+        
+        
+        <a href="#vm-issues"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            VM Issues
+        </a>
+        
+        <a href="#network-issues"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Network Issues
+        </a>
+        
+        <a href="#storage-issues"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Storage Issues
+        </a>
+        
+        
+
+        
+        <a href="#best-practices"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Best Practices
+        </a>
+        
+
+        
+        <a href="#quick-reference"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Quick Reference
+        </a>
+        
+        
+        <a href="#common-commands"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Common Commands
+        </a>
+        
+        
+
+        
+        <a href="#documentation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Documentation
+        </a>
+        
+
         
         
         

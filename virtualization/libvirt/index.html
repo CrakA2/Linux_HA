@@ -509,45 +509,622 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>Virtualization API and daemon for managing virtualization capabilities.</p>
+<p>Virtualization API and daemon for managing virtualization capabilities with unified hypervisor support.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[libvirtd Daemon] --&gt; B[QEMU/KVM]
-    A --&gt; C[LXC Containers]
-    A --&gt; D[Xen]
+    subgraph "Hypervisors"
+        A[QEMU/KVM]
+        B[LXC]
+        C[Xen]
+        D[VMware ESX]
+        E[Hyper-V]
+    end
 
-    E[Management Tools] --&gt; F[virsh CLI]
-    E --&gt; G[virt-manager GUI]
-    E --&gt; H[API Bindings]
+    subgraph "libvirtd Daemon"
+        F[libvirtd Main]
+        G[QEMU Driver]
+        H[LXC Driver]
+        I[Xen Driver]
+        J[Network Driver]
+        K[Storage Driver]
+        L[Node Driver]
+        M[Secret Driver]
+    end
+
+    subgraph "API Layer"
+        N[libvirt API]
+        O[QEMU Protocol]
+        P[Network Protocol]
+    end
+
+    subgraph "Clients"
+        Q[virsh CLI]
+        R[virt-manager GUI]
+        S[Python Bindings]
+        T[C Bindings]
+        U[Java Bindings]
+    end
 
     F --&gt; A
-    G --&gt; A
-    H --&gt; A
-</div>
-<h2 id="key-features">Key Features</h2>
-<ul>
-<li>Unified API for multiple hypervisors</li>
-<li>XML-based VM configuration</li>
-<li>Network and storage management</li>
-<li>Secure API with authentication</li>
-<li>Live migration support</li>
-</ul>
-<h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># List VMs
-virsh list --all
+    F --&gt; B
+    F --&gt; C
+    F --&gt; D
+    F --&gt; E
 
-# VM operations
+    F --&gt; G
+    F --&gt; H
+    F --&gt; I
+    F --&gt; J
+    F --&gt; K
+    F --&gt; L
+    F --&gt; M
+
+    G --&gt; A
+    H --&gt; B
+    I --&gt; C
+
+    F --&gt; N
+    F --&gt; O
+    F --&gt; P
+
+    Q --&gt; N
+    R --&gt; N
+    S --&gt; N
+    T --&gt; N
+    U --&gt; N
+
+    style F fill:#c8e6c9
+    style N fill:#ffecb3
+    style A fill:#e1f5ff
+    style Q fill:#fff3e0
+</div>
+<h2 id="core-components">Core Components</h2>
+<h3 id="libvirtd-daemon">libvirtd Daemon</h3>
+<p>Main daemon managing virtualization resources.</p>
+<p><strong>libvirtd Responsibilities</strong>:
+- Manage VM lifecycle
+- Handle client connections
+- Execute VM operations
+- Manage network and storage
+- Provide security and authentication</p>
+<p><strong>libvirtd Configuration</strong>:
+<pre class="highlight"><code class="language-xml">&lt;!-- /etc/libvirt/libvirtd.conf --&gt;
+listen_tls = 1
+listen_tcp = 0
+auth_unix_ro = "none"
+auth_unix_rw = "none"
+auth_tls = "none"
+log_level = 3
+log_outputs = "3:file:/var/log/libvirt/libvirtd.log"</code></pre></p>
+<p><strong>libvirtd Services</strong>:
+| Service | Description |
+|---------|-------------|
+| libvirtd | Main daemon |
+| virtlogd | Log manager |
+| virtlockd | Lock manager |
+| virtqemud | QEMU driver daemon |</p>
+<h3 id="drivers">Drivers</h3>
+<p>libvirt supports multiple hypervisor drivers.</p>
+<p><strong>Driver Types</strong>:
+| Driver | Hypervisor | Status |
+|--------|------------|--------|
+| qemu | QEMU/KVM | Stable |
+| lxc | Linux Containers | Stable |
+| xen | Xen | Stable |
+| vmware | VMware ESX | Stable |
+| vbox | VirtualBox | Experimental |
+| bhyve | BSD Hypervisor | Experimental |
+| vz | Virtuozzo | Stable |</p>
+<p><strong>Driver Architecture</strong>:</p>
+<div class="mermaid">graph TB
+    A[libvirt API] --&gt; B[Driver Manager]
+    B --&gt; C[QEMU Driver]
+    B --&gt; D[LXC Driver]
+    B --&gt; E[Xen Driver]
+
+    C --&gt; F[QEMU Process]
+    D --&gt; G[LXC Container]
+    E --&gt; H[Xen Domain]
+
+    style B fill:#c8e6c9
+    style C fill:#ffecb3
+    style D fill:#e1f5ff
+</div>
+<h2 id="domain-configuration">Domain Configuration</h2>
+<h3 id="xml-domain-structure">XML Domain Structure</h3>
+<p>Complete VM configuration in XML format.</p>
+<p><strong>Basic Domain XML</strong>:
+<pre class="highlight"><code class="language-xml">&lt;domain type='kvm'&gt;
+  &lt;name&gt;vm1&lt;/name&gt;
+  &lt;memory unit='KiB'&gt;2097152&lt;/memory&gt;
+  &lt;vcpu placement='static'&gt;2&lt;/vcpu&gt;
+
+  &lt;os&gt;
+    &lt;type arch='x86_64' machine='pc-i440fx-2.9'&gt;hvm&lt;/type&gt;
+    &lt;boot dev='hd'/&gt;
+  &lt;/os&gt;
+
+  &lt;devices&gt;
+    &lt;emulator&gt;/usr/bin/qemu-system-x86_64&lt;/emulator&gt;
+    &lt;disk type='file' device='disk'&gt;
+      &lt;driver name='qemu' type='qcow2'/&gt;
+      &lt;source file='/var/lib/libvirt/images/vm1.qcow2'/&gt;
+      &lt;target dev='vda' bus='virtio'/&gt;
+    &lt;/disk&gt;
+    &lt;interface type='network'&gt;
+      &lt;mac address='52:54:00:71:b1:b6'/&gt;
+      &lt;source network='default'/&gt;
+      &lt;model type='virtio'/&gt;
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+&lt;/domain&gt;</code></pre></p>
+<h3 id="cpu-configuration">CPU Configuration</h3>
+<p><strong>CPU Features</strong>:
+<pre class="highlight"><code class="language-xml">&lt;cpu mode='host-passthrough'&gt;
+  &lt;feature policy='require' name='vmx'/&gt;
+  &lt;topology sockets='2' cores='2' threads='1'/&gt;
+&lt;/cpu&gt;</code></pre></p>
+<p><strong>CPU Modes</strong>:
+| Mode | Description |
+|------|-------------|
+| host-passthrough | Pass all CPU features |
+| host-model | Emulate host CPU model |
+| custom | Custom CPU configuration |</p>
+<p><strong>CPU Features</strong>:
+| Feature | Description |
+|---------|-------------|
+| vmx | Intel VT-x |
+| svm | AMD-V |
+| pdpe1gb | 1GB pages |
+| avx | Advanced Vector Extensions |
+| avx2 | Advanced Vector Extensions 2 |</p>
+<h3 id="memory-configuration">Memory Configuration</h3>
+<p><strong>Basic Memory</strong>:
+<pre class="highlight"><code class="language-xml">&lt;memory unit='KiB'&gt;2097152&lt;/memory&gt;
+&lt;currentMemory unit='KiB'&gt;2097152&lt;/currentMemory&gt;</code></pre></p>
+<p><strong>NUMA Memory</strong>:
+<pre class="highlight"><code class="language-xml">&lt;cpu mode='host-passthrough' numa='1'&gt;
+  &lt;numa&gt;
+    &lt;cell id='0' cpus='0-1' memory='2097152' unit='KiB'/&gt;
+  &lt;/numa&gt;
+&lt;/cpu&gt;
+
+&lt;memoryBacking&gt;
+  &lt;hugepages&gt;
+    &lt;page size='2048' unit='KiB' nodeset='0'/&gt;
+  &lt;/hugepages&gt;
+&lt;/memoryBacking&gt;</code></pre></p>
+<p><strong>Memory Locking</strong>:
+<pre class="highlight"><code class="language-xml">&lt;memoryBacking&gt;
+  &lt;locked/&gt;
+  &lt;hugepages/&gt;
+&lt;/memoryBacking&gt;</code></pre></p>
+<h3 id="storage-configuration">Storage Configuration</h3>
+<p><strong>Disk Configuration</strong>:
+<pre class="highlight"><code class="language-xml">&lt;disk type='file' device='disk'&gt;
+  &lt;driver name='qemu' type='qcow2' cache='writeback'/&gt;
+  &lt;source file='/var/lib/libvirt/images/vm1.qcow2'/&gt;
+  &lt;target dev='vda' bus='virtio'/&gt;
+  &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/&gt;
+&lt;/disk&gt;</code></pre></p>
+<p><strong>Disk Types</strong>:
+| Type | Description | Performance |
+|------|-------------|------------|
+| qcow2 | QEMU copy-on-write | Good |
+| raw | Raw image | Excellent |
+| qed | QED format | Good |
+| vmdk | VMware format | Good |
+| vdi | VirtualBox format | Good |</p>
+<p><strong>Disk Formats</strong>:
+<pre class="highlight"><code class="language-xml">&lt;!-- Qcow2 --&gt;
+&lt;disk type='file' device='disk'&gt;
+  &lt;driver name='qemu' type='qcow2'/&gt;
+  &lt;source file='/var/lib/libvirt/images/vm1.qcow2'/&gt;
+&lt;/disk&gt;
+
+&lt;!-- Raw --&gt;
+&lt;disk type='block' device='disk'&gt;
+  &lt;driver name='qemu' type='raw' cache='none'/&gt;
+  &lt;source dev='/dev/vg0/vm1'/&gt;
+&lt;/disk&gt;
+
+&lt;!-- iSCSI --&gt;
+&lt;disk type='block' device='disk'&gt;
+  &lt;driver name='qemu' type='raw'/&gt;
+  &lt;source dev='/dev/disk/by-path/ip-192.168.1.100:3260-iscsi-iqn.2026-01.com.example:storage.target1-lun-1'/&gt;
+&lt;/disk&gt;
+
+&lt;!-- RBD --&gt;
+&lt;disk type='network' device='disk'&gt;
+  &lt;driver name='qemu' type='raw'/&gt;
+  &lt;source protocol='rbd' name='pool/image'&gt;
+    &lt;host name='ceph-mon.example.com' port='6789'/&gt;
+  &lt;/source&gt;
+&lt;/disk&gt;</code></pre></p>
+<h3 id="network-configuration">Network Configuration</h3>
+<p><strong>Bridge Network</strong>:
+<pre class="highlight"><code class="language-xml">&lt;interface type='bridge'&gt;
+  &lt;mac address='52:54:00:71:b1:b6'/&gt;
+  &lt;source bridge='br0'/&gt;
+  &lt;model type='virtio'/&gt;
+  &lt;driver name='vhost'/&gt;
+&lt;/interface&gt;</code></pre></p>
+<p><strong>Virtual Network</strong>:
+<pre class="highlight"><code class="language-xml">&lt;interface type='network'&gt;
+  &lt;mac address='52:54:00:71:b1:b6'/&gt;
+  &lt;source network='default'/&gt;
+  &lt;model type='virtio'/&gt;
+  &lt;driver name='vhost'/&gt;
+&lt;/interface&gt;</code></pre></p>
+<p><strong>Network Types</strong>:
+| Type | Description | Use Case |
+|------|-------------|----------|
+| bridge | Physical bridge | Production networking |
+| network | Virtual network | Isolated VMs |
+| direct | SR-IOV | High performance |
+| macvtap | MAC VLAN | Direct access |
+| tap | TAP device | Custom networking |</p>
+<p><strong>Network Features</strong>:
+<pre class="highlight"><code class="language-xml">&lt;interface type='bridge'&gt;
+  &lt;mac address='52:54:00:71:b1:b6'/&gt;
+  &lt;source bridge='br0'/&gt;
+  &lt;model type='virtio'/&gt;
+  &lt;driver name='vhost' queues='4'/&gt;
+  &lt;mtu size='9000'/&gt;
+  &lt;bandwidth&gt;
+    &lt;inbound average='1000' peak='5000' burst='1024'/&gt;
+    &lt;outbound average='1000' peak='5000' burst='1024'/&gt;
+  &lt;/bandwidth&gt;
+  &lt;link state='up'/&gt;
+&lt;/interface&gt;</code></pre></p>
+<h2 id="quick-commands">Quick Commands</h2>
+<h3 id="domain-management">Domain Management</h3>
+<pre class="highlight"><code class="language-bash"># List VMs
+virsh list
+virsh list --all
+virsh list --state-running
+virsh list --state-shutoff
+
+# Define VM
+virsh define vm1.xml
+
+# Undefine VM
+virsh undefine vm1
+
+# Start VM
 virsh start vm1
+
+# Stop VM
 virsh shutdown vm1
+
+# Force stop VM
+virsh destroy vm1
+
+# Restart VM
+virsh reboot vm1</code></pre>
+<h3 id="domain-configuration_1">Domain Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Dump XML
 virsh dumpxml vm1
 
-# Network management
-virsh net-list
-virsh net-define network.xml</code></pre>
+# Edit XML
+virsh edit vm1
+
+# Get/set XML elements
+virsh dumpxml vm1 | grep memory
+virsh dumpxml vm1 | xpath //memory
+
+# Autostart VM
+virsh autostart vm1
+virsh autostart --disable vm1</code></pre>
+<h3 id="domain-monitoring">Domain Monitoring</h3>
+<pre class="highlight"><code class="language-bash"># VM status
+virsh dominfo vm1
+
+# VCPU status
+virsh vcpuinfo vm1
+
+# Memory statistics
+virsh dommemstat vm1
+
+# Block statistics
+virsh domblklist vm1
+virsh domblkinfo vm1 vda
+
+# Network statistics
+virsh domiflist vm1
+virsh domifstat vm1 vnet0</code></pre>
+<h3 id="migration">Migration</h3>
+<pre class="highlight"><code class="language-bash"># Live migration
+virsh migrate --live vm1 qemu+ssh://dest/system
+
+# Migration with compression
+virsh migrate --live --compress vm1 qemu+ssh://dest/system
+
+# Migration with tunnel
+virsh migrate --live --tunnelled vm1 qemu+ssh://dest/system
+
+# Cold migration
+virsh migrate vm1 qemu+ssh://dest/system</code></pre>
+<h2 id="network-configuration_1">Network Configuration</h2>
+<h3 id="virtual-networks">Virtual Networks</h3>
+<p><strong>Define Network</strong>:
+<pre class="highlight"><code class="language-xml">&lt;network&gt;
+  &lt;name&gt;default&lt;/name&gt;
+  &lt;forward mode='nat'/&gt;
+  &lt;bridge name='virbr0' stp='on' delay='0'/&gt;
+  &lt;ip address='192.168.122.1' netmask='255.255.255.0'&gt;
+    &lt;dhcp&gt;
+      &lt;range start='192.168.122.2' end='192.168.122.254'/&gt;
+    &lt;/dhcp&gt;
+  &lt;/ip&gt;
+&lt;/network&gt;</code></pre></p>
+<p><strong>Create Network</strong>:
+<pre class="highlight"><code class="language-bash"># Define network
+virsh net-define network.xml
+
+# Start network
+virsh net-start default
+
+# Autostart network
+virsh net-autostart default
+
+# List networks
+virsh net-list --all
+
+# Delete network
+virsh net-destroy default
+virsh net-undefine default</code></pre></p>
+<p><strong>Network Forward Modes</strong>:
+| Mode | Description |
+|------|-------------|
+| nat | Network address translation |
+| route | Simple routing |
+| bridge | Direct bridge |
+| open | No forwarding |
+| hostdev | PCI passthrough |
+| macvtap | MAC VLAN |</p>
+<h2 id="storage-configuration_1">Storage Configuration</h2>
+<h3 id="storage-pools">Storage Pools</h3>
+<p><strong>Define Storage Pool</strong>:
+<pre class="highlight"><code class="language-xml">&lt;pool type='dir'&gt;
+  &lt;name&gt;default&lt;/name&gt;
+  &lt;target&gt;
+    &lt;path&gt;/var/lib/libvirt/images&lt;/path&gt;
+  &lt;/target&gt;
+&lt;/pool&gt;</code></pre></p>
+<p><strong>Create Storage Pool</strong>:
+<pre class="highlight"><code class="language-bash"># Define pool
+virsh pool-define pool.xml
+
+# Build pool
+virsh pool-build default
+
+# Start pool
+virsh pool-start default
+
+# Autostart pool
+virsh pool-autostart default
+
+# List pools
+virsh pool-list --all</code></pre></p>
+<p><strong>Storage Pool Types</strong>:
+| Type | Description | Use Case |
+|------|-------------|----------|
+| dir | Directory | Simple storage |
+| fs | Filesystem | Local filesystem |
+| logical | LVM | Volume management |
+| iscsi | iSCSI | SAN storage |
+| netfs | NFS | Network file system |
+| rbd | Ceph RBD | Distributed storage |
+| disk | Physical disk | Disk partition |
+| zfs | ZFS | ZFS storage |</p>
+<h3 id="storage-volumes">Storage Volumes</h3>
+<p><strong>Create Volume</strong>:
+<pre class="highlight"><code class="language-bash"># Create volume
+virsh vol-create-as default vm1.qcow2 20G --format qcow2
+
+# Upload image
+virsh vol-upload default vm1.qcow2 disk.qcow2
+
+# Download image
+virsh vol-download default vm1.qcow2 disk.qcow2
+
+# Clone volume
+virsh vol-clone default vm1.qcow2 vm2.qcow2
+
+# Delete volume
+virsh vol-delete default vm1.qcow2</code></pre></p>
+<h2 id="api-bindings">API Bindings</h2>
+<h3 id="python-api">Python API</h3>
+<pre class="highlight"><code class="language-python">#!/usr/bin/env python3
+
+import libvirt
+
+# Connect to libvirt
+conn = libvirt.open('qemu:///system')
+
+# Get domain
+dom = conn.lookupByName('vm1')
+
+# Start domain
+dom.create()
+
+# Get domain info
+info = dom.info()
+print(f"State: {info[0]}")
+print(f"Memory: {info[1]}")
+print(f"CPUs: {info[3]}")
+
+# Close connection
+conn.close()</code></pre>
+<h3 id="c-api">C API</h3>
+<pre class="highlight"><code class="language-c">#include &lt;libvirt/libvirt.h&gt;
+
+int main() {
+    virConnectPtr conn;
+    virDomainPtr dom;
+
+    // Connect to libvirt
+    conn = virConnectOpen("qemu:///system");
+    if (conn == NULL) {
+        fprintf(stderr, "Failed to open connection to qemu:///system\n");
+        return 1;
+    }
+
+    // Get domain
+    dom = virDomainLookupByName(conn, "vm1");
+    if (dom == NULL) {
+        fprintf(stderr, "Failed to find domain vm1\n");
+        virConnectClose(conn);
+        return 1;
+    }
+
+    // Start domain
+    virDomainCreate(dom);
+
+    // Cleanup
+    virDomainFree(dom);
+    virConnectClose(conn);
+
+    return 0;
+}</code></pre>
+<h2 id="security">Security</h2>
+<h3 id="authentication">Authentication</h3>
+<p><strong>SASL Authentication</strong>:
+<pre class="highlight"><code class="language-xml">&lt;!-- /etc/libvirt/libvirtd.conf --&gt;
+auth_unix_ro = "sasl"
+auth_unix_rw = "sasl"</code></pre></p>
+<p><strong>TLS/SSL</strong>:
+<pre class="highlight"><code class="language-xml">&lt;!-- /etc/libvirt/libvirtd.conf --&gt;
+listen_tls = 1
+listen_tcp = 0
+
+&lt;!-- Certificate locations --&gt;
+cert_file = "/etc/pki/libvirt/servercert.pem"
+key_file = "/etc/pki/libvirt/private/serverkey.pem"
+ca_file = "/etc/pki/CA/cacert.pem"</code></pre></p>
+<h3 id="apparmorselinux">AppArmor/SELinux</h3>
+<p><strong>AppArmor Profile</strong>:
+<pre class="highlight"><code class="language-bash"># Check AppArmor status
+aa-status
+
+# View AppArmor profile
+cat /etc/apparmor.d/usr.sbin.libvirtd</code></pre></p>
+<p><strong>SELinux Context</strong>:
+<pre class="highlight"><code class="language-bash"># Check SELinux status
+sestatus
+
+# Set SELinux context
+chcon -R --reference=/var/lib/libvirt/images /path/to/new/images</code></pre></p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="connection-issues">Connection Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check libvirtd status
+systemctl status libvirtd
+
+# Check logs
+journalctl -u libvirtd -f
+
+# Check configuration
+virsh version
+virsh uri</code></pre>
+<h3 id="vm-issues">VM Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check VM logs
+tail -f /var/log/libvirt/qemu/vm1.log
+
+# Check libvirt logs
+tail -f /var/log/libvirt/libvirtd.log
+
+# Check VM configuration
+virsh dumpxml vm1
+virsh dominfo vm1</code></pre>
+<h3 id="performance-issues">Performance Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check CPU usage
+top -H -p $(pidof qemu-kvm)
+
+# Check memory usage
+free -h
+
+# Check I/O
+iostat -x 1
+
+# Check network
+sar -n DEV 1</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Use libvirt XML</strong> for VM configuration</li>
+<li><strong>Enable virtio</strong> devices for performance</li>
+<li><strong>Use storage pools</strong> for volume management</li>
+<li><strong>Configure networks</strong> properly</li>
+<li><strong>Enable live migration</strong> for high availability</li>
+<li><strong>Set up monitoring</strong> and alerting</li>
+<li><strong>Use proper security</strong> (TLS, SELinux)</li>
+<li><strong>Test backup/restore</strong> procedures</li>
+<li><strong>Document VM configurations</strong></li>
+<li><strong>Regular updates</strong> of libvirt and QEMU</li>
+</ol>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Repository: https://gitlab.com/libvirt/libvirt</li>
-<li>Documentation: https://libvirt.org/docs/</li>
+<li><strong>Repository</strong>: https://gitlab.com/libvirt/libvirt</li>
+<li><strong>Documentation</strong>: https://libvirt.org/docs/</li>
+</ul>
+<h3 id="key-source-locations">Key Source Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>libvirtd</td>
+<td><code>src/libvirtd.c</code></td>
+<td>Main daemon</td>
+</tr>
+<tr>
+<td>QEMU Driver</td>
+<td><code>src/qemu/</code></td>
+<td>QEMU/KVM driver</td>
+</tr>
+<tr>
+<td>LXC Driver</td>
+<td><code>src/lxc/</code></td>
+<td>LXC driver</td>
+</tr>
+<tr>
+<td>Xen Driver</td>
+<td><code>src/xen/</code></td>
+<td>Xen driver</td>
+</tr>
+<tr>
+<td>Network</td>
+<td><code>src/network/</code></td>
+<td>Network management</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td><code>src/storage/</code></td>
+<td>Storage management</td>
+</tr>
+<tr>
+<td>API</td>
+<td><code>src/libvirt.c</code></td>
+<td>Public API</td>
+</tr>
+<tr>
+<td>XML</td>
+<td><code>src/conf/</code></td>
+<td>XML parsing</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="documentation-links">Documentation Links</h3>
+<ul>
+<li><a href="https://libvirt.org/html/index.html">libvirt API Reference</a></li>
+<li><a href="https://libvirt.org/format.html">libvirt XML Format</a></li>
+<li><a href="https://libvirt.org/drivers.html">libvirt Drivers</a></li>
+<li><a href="https://libvirt.org/security.html">libvirt Security</a></li>
 </ul>
 </div>
 </article>
@@ -711,14 +1288,104 @@ virsh net-define network.xml</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
-            Key Features
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#libvirtd-daemon">
+            libvirtd Daemon
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#drivers">
+            Drivers
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#domain-configuration">
+            Domain Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#xml-domain-structure">
+            XML Domain Structure
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cpu-configuration">
+            CPU Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#memory-configuration">
+            Memory Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#storage-configuration">
+            Storage Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-configuration">
+            Network Configuration
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#domain-management">
+            Domain Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#domain-configuration_1">
+            Domain Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#domain-monitoring">
+            Domain Monitoring
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#migration">
+            Migration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#network-configuration_1">
+            Network Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#virtual-networks">
+            Virtual Networks
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#storage-configuration_1">
+            Storage Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#storage-pools">
+            Storage Pools
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#storage-volumes">
+            Storage Volumes
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#api-bindings">
+            API Bindings
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#python-api">
+            Python API
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#c-api">
+            C API
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#security">
+            Security
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#authentication">
+            Authentication
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#apparmorselinux">
+            AppArmor/SELinux
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#connection-issues">
+            Connection Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#vm-issues">
+            VM Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#performance-issues">
+            Performance Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-source-locations">
+            Key Source Locations
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#documentation-links">
+            Documentation Links
         </a>
 </div>
 <div class="h-12"></div>

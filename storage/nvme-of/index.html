@@ -509,53 +509,572 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>NVMe over Fabrics gateway providing high-performance block access to Ceph.</p>
+<p>High-performance block storage protocol extending NVMe over network fabrics like TCP, RDMA, and FC.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[NVMe Host] --&gt; B[NVMe-oF Gateway]
-    B --&gt; C[SPDK/RBD Integration]
-    C --&gt; D[RADOS Cluster]
-    A --&gt; E[TCP/IP or RDMA]
-    B --&gt; E[HA Gateway Group]
+    subgraph "NVMe Host"
+        A[NVMe Driver]
+        B[NVMe Controller]
+        C[Namespace]
+        D[Block Layer]
+        E[Filesystem]
+    end
+
+    subgraph "Network Fabric"
+        F[NVMe/TCP]
+        G[NVMe/RoCE]
+        H[NVMe/FC]
+        I[RDMA Network]
+        J[TCP/IP Network]
+        K[Fibre Channel]
+    end
+
+    subgraph "NVMe-oF Target"
+        L[NVMe Target]
+        M[SPDK]
+        N[Target Subsystem]
+        O[Namespace]
+    end
+
+    subgraph "Storage Backend"
+        P[RBD]
+        Q[LVM]
+        R[File]
+        S[SPDK Backend]
+    end
+
+    A --&gt; B
+    B --&gt; C
+    C --&gt; D
+    D --&gt; E
+
+    A --&gt; F
+    A --&gt; G
+    A --&gt; H
+
+    F --&gt; J
+    G --&gt; I
+    H --&gt; K
+
+    L --&gt; F
+    L --&gt; G
+    L --&gt; H
+
+    L --&gt; M
+    M --&gt; N
+    N --&gt; O
+    O --&gt; P
+    O --&gt; Q
+    O --&gt; R
+    O --&gt; S
+
+    style L fill:#c8e6c9
+    style M fill:#ffecb3
+    style N fill:#e1f5ff
+    style P fill:#fff3e0
 </div>
-<h2 id="key-features">Key Features</h2>
-<ul>
-<li>NVMe/TCP protocol for block access</li>
-<li>SPDK integration for high performance</li>
-<li>HA with gateway groups</li>
-<li>Load balancing across gateways</li>
-<li>RDMA/RoCE support</li>
-</ul>
-<h2 id="quick-commands">Quick Commands</h2>
+<h2 id="core-components">Core Components</h2>
+<h3 id="nvme-host">NVMe Host</h3>
+<p>NVMe host driver for connecting to NVMe-oF targets.</p>
+<p><strong>NVMe Host Components</strong>:
+| Component | Description |
+|-----------|-------------|
+| NVMe Core | NVMe protocol driver |
+| NVMe TCP | NVMe over TCP transport |
+| NVMe RDMA | NVMe over RDMA transport |
+| NVMe FC | NVMe over Fibre Channel |
+| Namespace | NVMe namespace (block device) |
+| Controller | NVMe controller instance |</p>
+<p><strong>NVMe Operation Flow</strong>:</p>
+<div class="mermaid">sequenceDiagram
+    participant H as Host
+    participant T as Transport
+    participant S as Storage
+
+    H-&gt;&gt;T: NVMe Command
+    T-&gt;&gt;S: I/O Request
+    S-&gt;&gt;S: Process I/O
+    S-&gt;&gt;T: I/O Response
+    T-&gt;&gt;H: NVMe Completion
+
+    H-&gt;&gt;H: Handle Completion
+
+    style S fill:#c8e6c9
+    style T fill:#e1f5ff
+</div>
+<h3 id="nvme-of-target">NVMe-oF Target</h3>
+<p>Target implementing NVMe-oF protocol for block storage.</p>
+<p><strong>NVMe-oF Target Components</strong>:
+| Component | Description |
+|-----------|-------------|
+| Target | NVMe-oF target daemon |
+| Subsystem | NVMe subsystem (collection of namespaces) |
+| Namespace | Block storage unit |
+| Listener | Network listener for connections |
+| Host | Allowed NVMe host connections |</p>
+<p><strong>NVMe-oF Target Types</strong>:
+| Type | Description | Performance |
+|------|-------------|------------|
+| NVMe/TCP | NVMe over TCP | Good |
+| NVMe/RoCE | NVMe over RDMA | Excellent |
+| NVMe/FC | NVMe over Fibre Channel | Excellent |</p>
+<h2 id="transport-types">Transport Types</h2>
+<h3 id="nvmetcp">NVMe/TCP</h3>
+<p>NVMe over standard TCP/IP network.</p>
+<p><strong>NVMe/TCP Characteristics</strong>:
+| Feature | Description |
+|---------|-------------|
+| Standard TCP | Works over any IP network |
+| MTU Support | Up to 9000 bytes (Jumbo frames) |
+| No RDMA required | Works without RDMA hardware |
+| Lower performance | Compared to RDMA transports |</p>
+<p><strong>NVMe/TCP Setup</strong>:</p>
+<pre class="highlight"><code class="language-bash"># Install NVMe/TCP target
+apt-get install nvme-stas
+apt-get install nvmetcli
+
+# Create TCP listener
+nvme subsystem create --subsystem=nqn.2026-01.com.example:storage.target1
+nvme namespace create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --device=/dev/vg0/vm1
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=tcp --traddr=192.168.1.100 --trsvcid=4420</code></pre>
+<p><strong>NVMe/TCP Host Connection</strong>:</p>
+<pre class="highlight"><code class="language-bash"># Connect to target
+nvme connect -t tcp -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.100 -s 4420
+
+# View connections
+nvme list
+
+# Disconnect
+nvme disconnect -n nqn.2026-01.com.example:storage.target1</code></pre>
+<h3 id="nvmeroce">NVMe/RoCE</h3>
+<p>NVMe over RDMA Converged Ethernet.</p>
+<p><strong>NVMe/RoCE Characteristics</strong>:
+| Feature | Description |
+|---------|-------------|
+| RDMA | Remote Direct Memory Access |
+| High Performance | Low latency, high throughput |
+| Requires RDMA | Mellanox, Intel NICs |
+| MTU Support | Up to 9000 bytes |</p>
+<p><strong>NVMe/RoCE Setup</strong>:</p>
+<pre class="highlight"><code class="language-bash"># Install RDMA packages
+apt-get install rdma-core
+apt-get install ibutils
+apt-get install infiniband-diags
+
+# Configure RDMA
+modprobe rdma_cm
+modprobe ib_core
+modprobe ib_uverbs
+
+# Create RDMA listener
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=rdma --traddr=192.168.1.100 --trsvcid=4420</code></pre>
+<p><strong>NVMe/RoCE Host Connection</strong>:</p>
+<pre class="highlight"><code class="language-bash"># Connect with RDMA
+nvme connect -t rdma -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.100 -s 4420
+
+# View RDMA connections
+nvme list
+ibv_devinfo -v</code></pre>
+<h3 id="nvmefc">NVMe/FC</h3>
+<p>NVMe over Fibre Channel.</p>
+<p><strong>NVMe/FC Characteristics</strong>:
+| Feature | Description |
+|---------|-------------|
+| Fibre Channel | Enterprise storage networking |
+| High Availability | Redundant paths |
+| Zoning | Fibre Channel zoning |
+| WWN Identification | World Wide Name |</p>
+<p><strong>NVMe/FC Setup</strong>:</p>
+<pre class="highlight"><code class="language-bash"># Install NVMe/FC packages
+apt-get install nvme-fc
+apt-get install lsscsi
+apt-get install sg3-utils
+
+# Configure Fibre Channel
+modprobe lpfc
+modprobe qla2xxx
+
+# Create FC listener
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=fc --traddr=10:00:00:00:00:00:01</code></pre>
+<p><strong>NVMe/FC Host Connection</strong>:</p>
+<pre class="highlight"><code class="language-bash"># Discover FC targets
+nvme discover -t fc -w 10:00:00:00:00:00:01
+
+# Connect to FC target
+nvme connect -t fc -n nqn.2026-01.com.example:storage.target1 \
+    -w 10:00:00:00:00:00:01
+
+# View FC connections
+nvme list
+lsscsi</code></pre>
+<h2 id="target-configuration">Target Configuration</h2>
+<h3 id="creating-subsystem">Creating Subsystem</h3>
 <pre class="highlight"><code class="language-bash"># Create subsystem
-gwcli.py subsystem create &lt;subsystem-nqn&gt;
+nvme subsystem create --subsystem=nqn.2026-01.com.example:storage.target1
+
+# Create subsystem with allow-all hosts
+nvme subsystem create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --allow-all-hosts</code></pre>
+<h3 id="creating-namespace">Creating Namespace</h3>
+<pre class="highlight"><code class="language-bash"># Create namespace with block device
+nvme namespace create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --device=/dev/vg0/vm1 --nsid=1
+
+# Create namespace with file backend
+nvme namespace create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --path=/var/lib/nvme/disk.img --size=10G --nsid=1</code></pre>
+<h3 id="creating-listener">Creating Listener</h3>
+<pre class="highlight"><code class="language-bash"># Create TCP listener
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=tcp --traddr=192.168.1.100 --trsvcid=4420
+
+# Create RDMA listener
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=rdma --traddr=192.168.1.100 --trsvcid=4420
+
+# Create FC listener
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=fc --traddr=10:00:00:00:00:00:01</code></pre>
+<h3 id="host-configuration">Host Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Allow specific host
+nvme host add --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --host=nqn.2026-01.com.example:initiator1
+
+# Delete host
+nvme host delete --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --host=nqn.2026-01.com.example:initiator1</code></pre>
+<h2 id="discovery">Discovery</h2>
+<h3 id="discovery-methods">Discovery Methods</h3>
+<pre class="highlight"><code class="language-bash"># Discovery via transport
+nvme discover -t tcp -a 192.168.1.100 -s 4420
+
+# Discovery via NQN
+nvme discover -n nqn.2026-01.com.example:storage.target1
+
+# Discovery with all hosts
+nvme discover -t tcp -a 192.168.1.100 -s 4420 --hostid</code></pre>
+<h3 id="discovery-details">Discovery Details</h3>
+<pre class="highlight"><code class="language-bash"># View discovery log
+cat /etc/nvme/discovery.conf
+
+# Manual discovery entry
+# Discovery Entry for nqn.2026-01.com.example:storage.target1
+-transport=tcp -traddr=192.168.1.100 -trsvcid=4420
+-n nqn.2026-01.com.example:storage.target1</code></pre>
+<h2 id="connection-management">Connection Management</h2>
+<h3 id="connection-operations">Connection Operations</h3>
+<pre class="highlight"><code class="language-bash"># Connect to target
+nvme connect -t tcp -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.100 -s 4420
+
+# Connect with specific host NQN
+nvme connect -t tcp -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.100 -s 4420 -q nqn.2026-01.com.example:initiator1
+
+# Connect with multiple queues
+nvme connect -t tcp -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.100 -s 4420 -c 32
+
+# Disconnect from target
+nvme disconnect -n nqn.2026-01.com.example:storage.target1
+
+# Disconnect all
+nvme disconnect-all</code></pre>
+<h3 id="persistent-connections">Persistent Connections</h3>
+<pre class="highlight"><code class="language-bash"># Add to discovery.conf
+echo "-transport=tcp -traddr=192.168.1.100 -trsvcid=4420 \
+    -n nqn.2026-01.com.example:storage.target1" &gt;&gt; /etc/nvme/discovery.conf
+
+# Enable auto-connect
+systemctl enable nvme-autoconnect
+systemctl start nvme-autoconnect</code></pre>
+<h2 id="performance-tuning">Performance Tuning</h2>
+<h3 id="host-tuning">Host Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Increase queue depth
+nvme connect -t tcp -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.100 -s 4420 -c 32 -i 32
+
+# Enable write buffering
+echo 1 &gt; /sys/block/nvme0n1/queue/write_cache
+
+# Set scheduler
+echo none &gt; /sys/block/nvme0n1/queue/scheduler
+
+# Set I/O scheduler
+echo mq-deadline &gt; /sys/block/nvme0n1/queue/scheduler
+
+# Enable jumbo frames
+ip link set eth0 mtu 9000</code></pre>
+<h3 id="target-tuning">Target Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Set I/O queues
+nvme subsystem modify --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --queue-size=128
+
+# Set number of queues
+nvme subsystem modify --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --nr-io-queues=32
+
+# Set keep-alive interval
+nvme subsystem modify --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --kato=10</code></pre>
+<h3 id="network-tuning">Network Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Enable jumbo frames
+ip link set eth0 mtu 9000
+
+# Enable TCP offload
+ethtool -K eth0 tso on
+ethtool -K eth0 gso on
+ethtool -K eth0 lro on
+
+# Increase TCP buffer
+sysctl -w net.ipv4.tcp_window_scaling=1
+sysctl -w net.ipv4.tcp_timestamps=1
+sysctl -w net.ipv4.tcp_rmem='4096 65536 16777216'
+sysctl -w net.ipv4.tcp_wmem='4096 65536 16777216'</code></pre>
+<h2 id="high-availability">High Availability</h2>
+<h3 id="ha-gateway-configuration">HA Gateway Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Create multiple listeners
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=tcp --traddr=192.168.1.100 --trsvcid=4420
+
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=tcp --traddr=192.168.1.101 --trsvcid=4420
+
+# Configure multipath
+vim /etc/multipath.conf
+
+defaults {
+    user_friendly_names yes
+    find_multipaths yes
+}
+
+devices {
+    device {
+        vendor "Linux"
+        product "NVMe"
+    }
+}</code></pre>
+<h3 id="load-balancing">Load Balancing</h3>
+<pre class="highlight"><code class="language-bash"># Round-robin path selection
+path_selector "round-robin 0"
+
+# Load balancing
+nvme connect -t tcp -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.100 -s 4420
+
+nvme connect -t tcp -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.101 -s 4420</code></pre>
+<h2 id="ceph-nvme-of-gateway">Ceph NVMe-oF Gateway</h2>
+<h3 id="ceph-nvme-of-setup">Ceph NVMe-oF Setup</h3>
+<pre class="highlight"><code class="language-bash"># Install Ceph NVMe-oF gateway
+apt-get install ceph-nvmeof
+apt-get install rbd-nvmeof
+apt-get install spdk
+
+# Create RBD image
+rbd create rbd/disk1 --size 100G
+
+# Create NVMe-oF gateway configuration
+cat &gt; gateway.yml &lt;&lt;EOF
+service_type: nvmeof
+service_id: nvmeof
+placement:
+  hosts:
+    - gw1
+    - gw2
+spec:
+  pools:
+    - rbd
+  api_user: admin
+  api_secret: AQATjVdhSx3pGBAA2C7C1C9DjFwB2bY8x0l6g==
+  trusted_ip_list: 192.168.1.100,192.168.1.101
+EOF
+
+# Apply gateway configuration
+ceph orch apply -i gateway.yml</code></pre>
+<h3 id="gateway-management">Gateway Management</h3>
+<pre class="highlight"><code class="language-bash"># Create subsystem
+gwcli.py subsystem create nqn.2026-01.com.example:ceph.target1
 
 # Create namespace
-gwcli.py namespace create &lt;subsystem-nqn&gt; 1 \
+gwcli.py namespace create nqn.2026-01.com.example:ceph.target1 1 \
     --pool rbd --image disk1
 
-# Configure gateway
-ceph orch apply nvmeof gateway.yml
+# Create listener
+gwcli.py listener create nqn.2026-01.com.example:ceph.target1 \
+    --transport=tcp --traddr=192.168.1.100 --trsvcid=4420
 
-# Connect initiator
-nvme connect -t tcp -n &lt;subsystem-nqn&gt; \
-    -a &lt;gateway-ip&gt; -s 4420</code></pre>
-<h2 id="nifty-behaviors">Nifty Behaviors</h2>
-<h3 id="chap-authentication">CHAP Authentication</h3>
-<p><pre class="highlight"><code class="language-bash"># Configure CHAP on gateway
-gwcli.py target set_chap &lt;target-iqn&gt; \
-    --user &lt;username&gt; --password &lt;password&gt;</code></pre>
-<strong>Nifty</strong>: Secure iSCSI connections</p>
-<h3 id="ha-gateway-groups">HA Gateway Groups</h3>
-<p><pre class="highlight"><code class="language-bash"># Create gateway group
-gwcli.py group create &lt;group-name&gt;
-gwcli.py group add_gateway &lt;group-name&gt; &lt;gateway-host&gt;</code></pre>
-<strong>Nifty</strong>: Redundant iSCSI/NVMe-oF gateways</p>
+# Add host
+gwcli.py host add nqn.2026-01.com.example:ceph.target1 \
+    nqn.2026-01.com.example:initiator1</code></pre>
+<h2 id="spdk-integration">SPDK Integration</h2>
+<h3 id="spdk-target">SPDK Target</h3>
+<pre class="highlight"><code class="language-bash"># Install SPDK
+apt-get install spdk
+apt-get install dpdk
+apt-get install rdma-core
+
+# Configure SPDK
+modprobe vfio-pci
+modprobe uio_pci_generic
+
+# Create SPDK target
+nvmf_tgt
+
+# Create subsystem
+rpc.py nvmf_create_subsystem nqn.2026-01.com.example:spdk.target1
+
+# Create namespace
+rpc.py bdev_rbd_create rbd=rbd/disk1
+rpc.py nvmf_subsystem_add_ns nqn.2026-01.com.example:spdk.target1 \
+    bdev_name=Rbd0
+
+# Create listener
+rpc.py nvmf_subsystem_add_listener nqn.2026-01.com.example:spdk.target1 \
+    -t TCP -a 192.168.1.100 -s 4420</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="discovery-issues">Discovery Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check target status
+nvme list-subsys
+
+# Check network
+ping 192.168.1.100
+telnet 192.168.1.100 4420
+
+# Check NVMe driver
+lsmod | grep nvme
+dmesg | grep nvme
+
+# Check discovery
+nvme discover -t tcp -a 192.168.1.100 -s 4420 -d</code></pre>
+<h3 id="connection-issues">Connection Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check connections
+nvme list
+nvme list-subsys
+
+# Check logs
+journalctl -u nvme -f
+dmesg | grep nvme
+
+# Check subsystems
+nvme list-subsys
+
+# Check namespaces
+nvme list</code></pre>
+<h3 id="performance-issues">Performance Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check I/O
+iostat -x 1
+
+# Check network
+sar -n DEV 1
+
+# Check NVMe stats
+nvme list -v
+cat /sys/class/nvme/nvme0/device/statistics
+
+# Check RDMA
+ibv_devinfo -v</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Use RDMA</strong> for high performance</li>
+<li><strong>Enable jumbo frames</strong> for better throughput</li>
+<li><strong>Configure multipath</strong> for HA</li>
+<li><strong>Use dedicated network</strong> for NVMe-oF</li>
+<li><strong>Monitor connections</strong> regularly</li>
+<li><strong>Test failover</strong> scenarios</li>
+<li><strong>Tune queue depth</strong> for workload</li>
+<li><strong>Use proper authentication</strong></li>
+<li><strong>Document configuration</strong> thoroughly</li>
+<li><strong>Regular backups</strong> of setup</li>
+</ol>
+<h2 id="quick-commands">Quick Commands</h2>
+<h3 id="target-commands">Target Commands</h3>
+<pre class="highlight"><code class="language-bash"># Create subsystem
+nvme subsystem create --subsystem=nqn.2026-01.com.example:storage.target1
+
+# Create namespace
+nvme namespace create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --device=/dev/vg0/vm1
+
+# Create listener
+nvme listener create --subsystem=nqn.2026-01.com.example:storage.target1 \
+    --transport=tcp --traddr=192.168.1.100 --trsvcid=4420
+
+# Delete subsystem
+nvme subsystem delete --subsystem=nqn.2026-01.com.example:storage.target1</code></pre>
+<h3 id="host-commands">Host Commands</h3>
+<pre class="highlight"><code class="language-bash"># Discover targets
+nvme discover -t tcp -a 192.168.1.100 -s 4420
+
+# Connect to target
+nvme connect -t tcp -n nqn.2026-01.com.example:storage.target1 \
+    -a 192.168.1.100 -s 4420
+
+# Disconnect
+nvme disconnect -n nqn.2026-01.com.example:storage.target1
+
+# List subsystems
+nvme list-subsys
+
+# List namespaces
+nvme list</code></pre>
+<h3 id="multipath-commands">Multipath Commands</h3>
+<pre class="highlight"><code class="language-bash"># Configure multipath
+multipath -F
+multipath -v2
+
+# List multipath devices
+multipath -ll</code></pre>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Repository: https://github.com/ceph/ceph</li>
-<li>Documentation: https://docs.ceph.com/en/latest/rbd/nvmeof-overview/</li>
+<li><strong>Repository</strong>: https://github.com/linux-nvme/nvme-cli</li>
+<li><strong>Ceph NVMe-oF</strong>: https://github.com/ceph/ceph/tree/master/src/monitoring</li>
+<li><strong>SPDK</strong>: https://github.com/spdk/spdk</li>
+<li><strong>Documentation</strong>: https://nvmexpress.org/</li>
 </ul>
+<h3 id="key-components">Key Components</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NVMe Core</td>
+<td><code>drivers/nvme/</code></td>
+<td>NVMe driver</td>
+</tr>
+<tr>
+<td>NVMe TCP</td>
+<td><code>drivers/nvme/host/tcp.c</code></td>
+<td>NVMe/TCP transport</td>
+</tr>
+<tr>
+<td>NVMe RDMA</td>
+<td><code>drivers/nvme/host/rdma.c</code></td>
+<td>NVMe/RDMA transport</td>
+</tr>
+<tr>
+<td>NVMe FC</td>
+<td><code>drivers/nvme/host/fc.c</code></td>
+<td>NVMe/FC transport</td>
+</tr>
+<tr>
+<td>SPDK</td>
+<td><code>spdk/</code></td>
+<td>Userspace NVMe</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -718,23 +1237,128 @@ gwcli.py group add_gateway &lt;group-name&gt; &lt;gateway-host&gt;</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
-            Key Features
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#nvme-host">
+            NVMe Host
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#nvme-of-target">
+            NVMe-oF Target
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#transport-types">
+            Transport Types
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#nvmetcp">
+            NVMe/TCP
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#nvmeroce">
+            NVMe/RoCE
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#nvmefc">
+            NVMe/FC
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#target-configuration">
+            Target Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#creating-subsystem">
+            Creating Subsystem
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#creating-namespace">
+            Creating Namespace
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#creating-listener">
+            Creating Listener
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#host-configuration">
+            Host Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#discovery">
+            Discovery
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#discovery-methods">
+            Discovery Methods
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#discovery-details">
+            Discovery Details
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#connection-management">
+            Connection Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#connection-operations">
+            Connection Operations
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#persistent-connections">
+            Persistent Connections
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#performance-tuning">
+            Performance Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#host-tuning">
+            Host Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#target-tuning">
+            Target Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-tuning">
+            Network Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#high-availability">
+            High Availability
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ha-gateway-configuration">
+            HA Gateway Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#load-balancing">
+            Load Balancing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#ceph-nvme-of-gateway">
+            Ceph NVMe-oF Gateway
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ceph-nvme-of-setup">
+            Ceph NVMe-oF Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#gateway-management">
+            Gateway Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#spdk-integration">
+            SPDK Integration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#spdk-target">
+            SPDK Target
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#discovery-issues">
+            Discovery Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#connection-issues">
+            Connection Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#performance-issues">
+            Performance Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
-            Nifty Behaviors
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#target-commands">
+            Target Commands
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#chap-authentication">
-            CHAP Authentication
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#host-commands">
+            Host Commands
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ha-gateway-groups">
-            HA Gateway Groups
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#multipath-commands">
+            Multipath Commands
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-components">
+            Key Components
         </a>
 </div>
 <div class="h-12"></div>

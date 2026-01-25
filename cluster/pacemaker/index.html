@@ -509,61 +509,1009 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>Advanced cluster resource manager coordinating configuration, start-up, monitoring, and recovery of interrelated services.</p>
+<p>Advanced cluster resource manager coordinating configuration, start-up, monitoring, and recovery of interrelated services in Linux HA clusters.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[CRM - Cluster Resource Manager] --&gt; B[PE - Policy Engine]
-    A --&gt; C[TE - Transition Engine]
-    A --&gt; D[LRM - Local Resource Manager]
-    A --&gt; E[CIB - Cluster Information Base]
-    B --&gt; F[Calculate Transitions]
-    C --&gt; G[Execute Actions]
-    D --&gt; H[Monitor Resources]
-    E --&gt; I[Cluster State Database]
-</div>
-<h2 id="key-features">Key Features</h2>
-<ul>
-<li>Detection and recovery of host- and application-level failures</li>
-<li>Support for multiple redundancy configurations</li>
-<li>Configurable quorum loss strategies</li>
-<li>Ordering of service starts and stops</li>
-<li>Colocation and location constraints</li>
-</ul>
-<h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># Cluster status
-pcs status
+    subgraph "Cluster Layer"
+        A[CRM - Cluster Resource Manager]
+        B[PE - Policy Engine]
+        C[TE - Transition Engine]
+        D[LRM - Local Resource Manager]
+        E[CIB - Cluster Information Base]
 
-# Resource management
+        F[STONITH]
+        G[Quorum]
+    end
+
+    subgraph "Node Layer"
+        H[Node 1]
+        I[Node 2]
+        J[Node 3]
+
+        K[Resource Agents]
+        L[LRM Processes]
+        M[Applications]
+    end
+
+    A --&gt; B
+    A --&gt; C
+    A --&gt; D
+    A --&gt; E
+    A --&gt; F
+    A --&gt; G
+
+    B --&gt; N[Calculate Transitions]
+    C --&gt; O[Execute Actions]
+    D --&gt; P[Monitor Resources]
+    E --&gt; Q[Cluster State Database]
+
+    D --&gt; H
+    D --&gt; I
+    D --&gt; J
+
+    H --&gt; K
+    H --&gt; L
+    H --&gt; M
+
+    I --&gt; K
+    I --&gt; L
+    I --&gt; M
+
+    J --&gt; K
+    J --&gt; L
+    J --&gt; M
+
+    style A fill:#c8e6c9
+    style B fill:#e1f5ff
+    style C fill:#ffecb3
+    style E fill:#fff3e0
+</div>
+<h2 id="core-components">Core Components</h2>
+<h3 id="crm-cluster-resource-manager">CRM - Cluster Resource Manager</h3>
+<p>Central coordinator for all cluster operations.</p>
+<p><strong>Responsibilities</strong>:
+- Coordinate PE, TE, LRM components
+- Handle quorum and cluster membership
+- Process resource operations
+- Manage STONITH operations
+- Distribute cluster configuration</p>
+<p><strong>Communication Flow</strong>:
+<div class="mermaid">sequenceDiagram
+    participant C as CRM
+    participant P as PE
+    participant T as TE
+    participant L as LRM
+
+    C-&gt;&gt;P: Calculate state transitions
+    P-&gt;&gt;C: Return transition graph
+    C-&gt;&gt;T: Execute transitions
+    T-&gt;&gt;L: Resource operations
+    L-&gt;&gt;C: Operation results
+    C-&gt;&gt;C: Update CIB
+</div></p>
+<h3 id="pe-policy-engine">PE - Policy Engine</h3>
+<p>Calculates optimal resource placement and transitions.</p>
+<p><strong>Decision Process</strong>:
+1. Analyze current cluster state
+2. Evaluate constraints and priorities
+3. Calculate optimal transitions
+4. Generate transition graph
+5. Submit to TE for execution</p>
+<p><strong>Algorithm</strong>:
+- Score-based optimization
+- Constraint satisfaction
+- Failover calculation
+- Load balancing
+- Resource stickiness consideration</p>
+<p><strong>PE States</strong>:
+- Idle: No calculations in progress
+- Pending: Waiting for quorum or data
+- Active: Calculating transitions</p>
+<h3 id="te-transition-engine">TE - Transition Engine</h3>
+<p>Executes state transitions calculated by PE.</p>
+<p><strong>Transition Types</strong>:
+- Start: Start resource on node
+- Stop: Stop resource on node
+- Monitor: Check resource health
+- Promote/Demote: State change for master/slave resources
+- Migrate: Move resource between nodes
+- Recover: Handle resource failure</p>
+<p><strong>Execution Flow</strong>:
+<pre class="highlight"><code>1. Receive transition graph
+2. Validate dependencies
+3. Execute operations in order
+4. Wait for completion
+5. Report results
+6. Update cluster state</code></pre></p>
+<h3 id="lrm-local-resource-manager">LRM - Local Resource Manager</h3>
+<p>Manages resources on individual nodes.</p>
+<p><strong>LRM Process</strong>:
+- Resource agent execution
+- Operation tracking
+- Status reporting
+- Timeout handling
+- Error handling</p>
+<p><strong>LRM States</strong>:
+- Idle: No active operations
+- Busy: Executing operation
+- Stopped: Process stopped</p>
+<h3 id="cib-cluster-information-base">CIB - Cluster Information Base</h3>
+<p>Distributed database storing cluster configuration and state.</p>
+<p><strong>CIB Structure</strong>:
+<pre class="highlight"><code class="language-xml">&lt;cib&gt;
+  &lt;configuration&gt;
+    &lt;crm_config&gt;      &lt;!-- Cluster properties --&gt;
+    &lt;nodes&gt;           &lt;!-- Node definitions --&gt;
+    &lt;resources&gt;       &lt;!-- Resource definitions --&gt;
+    &lt;constraints&gt;     &lt;!-- Resource constraints --&gt;
+  &lt;/configuration&gt;
+  &lt;status&gt;
+    &lt;node_state&gt;      &lt;!-- Node status --&gt;
+    &lt;lrm_resource&gt;    &lt;!-- Resource status --&gt;
+  &lt;/status&gt;
+&lt;/cib&gt;</code></pre></p>
+<p><strong>CIB Distribution</strong>:
+- Replicated to all nodes
+- Version-controlled
+- Automatic synchronization
+- Conflict resolution</p>
+<p><strong>CIB Updates</strong>:
+<pre class="highlight"><code class="language-bash"># Show CIB
+pcs config
+
+# Export CIB
+pcs cluster cib &gt; cluster.xml
+
+# Edit CIB
+pcs cluster cib edit
+
+# Push CIB
+pcs cluster cib-push cluster.xml</code></pre></p>
+<h2 id="resource-types">Resource Types</h2>
+<h3 id="resource-classes">Resource Classes</h3>
+<h4 id="ocf-open-cluster-framework">OCF - Open Cluster Framework</h4>
+<p>Standard resource agent interface.</p>
+<p><strong>OCF Actions</strong>:
+<pre class="highlight"><code class="language-bash"># Start
+&lt;resource-agent&gt; start
+
+# Stop
+&lt;resource-agent&gt; stop
+
+# Monitor
+&lt;resource-agent&gt; monitor
+
+# Validate configuration
+&lt;resource-agent&gt; validate-all
+
+# Metadata
+&lt;resource-agent&gt; meta-data</code></pre></p>
+<p><strong>OCF Exit Codes</strong>:
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 7 | Not running |
+| 1 | Generic error |
+| 2 | Invalid parameters |
+| 3 | Unimplemented feature |
+| 4 | Insufficient privileges |
+| 5 | Not installed |
+| 6 | Not configured |</p>
+<p><strong>OCF Metadata Example</strong>:
+<pre class="highlight"><code class="language-xml">&lt;?xml version="1.0"?&gt;
+&lt;resource-agent name="IPaddr2"&gt;
+  &lt;version&gt;1.0&lt;/version&gt;
+  &lt;longdesc lang="en"&gt;IP address management&lt;/longdesc&gt;
+  &lt;shortdesc lang="en"&gt;IP address management&lt;/shortdesc&gt;
+
+  &lt;parameters&gt;
+    &lt;parameter name="ip" unique="1"&gt;
+      &lt;longdesc lang="en"&gt;IP address&lt;/longdesc&gt;
+      &lt;shortdesc lang="en"&gt;IP address&lt;/shortdesc&gt;
+      &lt;content type="string" default=""/&gt;
+    &lt;/parameter&gt;
+    &lt;parameter name="cidr_netmask"&gt;
+      &lt;longdesc lang="en"&gt;CIDR netmask&lt;/longdesc&gt;
+      &lt;shortdesc lang="en"&gt;CIDR netmask&lt;/shortdesc&gt;
+      &lt;content type="integer" default="24"/&gt;
+    &lt;/parameter&gt;
+  &lt;/parameters&gt;
+
+  &lt;actions&gt;
+    &lt;action name="start" timeout="20s"/&gt;
+    &lt;action name="stop" timeout="20s"/&gt;
+    &lt;action name="monitor" timeout="20s" interval="10s"/&gt;
+    &lt;action name="validate-all" timeout="20s"/&gt;
+  &lt;/actions&gt;
+&lt;/resource-agent&gt;</code></pre></p>
+<h4 id="lsb-linux-standard-base">LSB - Linux Standard Base</h4>
+<p>Standard SysV init scripts.</p>
+<p><strong>LSB Compatibility</strong>:
+<pre class="highlight"><code class="language-bash"># Start
+/etc/init.d/apache2 start
+
+# Stop
+/etc/init.d/apache2 stop
+
+# Status
+/etc/init.d/apache2 status
+
+# Reload
+/etc/init.d/apache2 reload</code></pre></p>
+<p><strong>LSB Resource Creation</strong>:
+<pre class="highlight"><code class="language-bash">pcs resource create apache lsb:apache2</code></pre></p>
+<h4 id="systemd">systemd</h4>
+<p>Native systemd service support.</p>
+<p><strong>systemd Resource Creation</strong>:
+<pre class="highlight"><code class="language-bash">pcs resource create myapp systemd:myapp</code></pre></p>
+<p><strong>systemd Actions</strong>:
+- start: <code>systemctl start</code>
+- stop: <code>systemctl stop</code>
+- monitor: <code>systemctl is-active</code></p>
+<h3 id="resource-standards">Resource Standards</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Standard</th>
+<th>Prefix</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OCF</td>
+<td><code>ocf:</code></td>
+<td>Open Cluster Framework</td>
+</tr>
+<tr>
+<td>LSB</td>
+<td><code>lsb:</code></td>
+<td>Linux Standard Base</td>
+</tr>
+<tr>
+<td>systemd</td>
+<td><code>systemd:</code></td>
+<td>systemd service</td>
+</tr>
+<tr>
+<td>stonith</td>
+<td><code>stonith:</code></td>
+<td>Fencing devices</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="resource-providers">Resource Providers</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>heartbeat</td>
+<td>Heartbeat project agents</td>
+<td><code>ocf:heartbeat:IPaddr2</code></td>
+</tr>
+<tr>
+<td>pacemaker</td>
+<td>Pacemaker agents</td>
+<td><code>ocf:pacemaker:ping</code></td>
+</tr>
+<tr>
+<td>redhat</td>
+<td>Red Hat agents</td>
+<td><code>ocf:redhat:apache</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="resource-management">Resource Management</h2>
+<h3 id="creating-resources">Creating Resources</h3>
+<h4 id="vip-resource">VIP Resource</h4>
+<pre class="highlight"><code class="language-bash"># Basic VIP
 pcs resource create vip ocf:heartbeat:IPaddr2 \
     ip=192.168.1.100 cidr_netmask=24
+
+# VIP with NIC specification
+pcs resource create vip ocf:heartbeat:IPaddr2 \
+    ip=192.168.1.100 cidr_netmask=24 \
+    nic=eth0
+
+# VIP with ARP ping
+pcs resource create vip ocf:heartbeat:IPaddr2 \
+    ip=192.168.1.100 cidr_netmask=24 \
+    arp_ping=true</code></pre>
+<h4 id="apache-resource">Apache Resource</h4>
+<pre class="highlight"><code class="language-bash"># Apache service
+pcs resource create apache ocf:heartbeat:apache \
+    configfile=/etc/apache2/apache2.conf \
+    statusurl=http://localhost/server-status \
+    client=1</code></pre>
+<h4 id="filesystem-resource">Filesystem Resource</h4>
+<pre class="highlight"><code class="language-bash"># Mount filesystem
+pcs resource create fs ocf:heartbeat:Filesystem \
+    device=/dev/drbd/by-res/data \
+    directory=/mnt/data \
+    fstype=ext4</code></pre>
+<h4 id="nfs-resource">NFS Resource</h4>
+<pre class="highlight"><code class="language-bash"># NFS export
+pcs resource create nfs_export ocf:heartbeat:nfsserver \
+    directory=/mnt/data \
+    options=rw,no_root_squash</code></pre>
+<h3 id="resource-cloning">Resource Cloning</h3>
+<h4 id="anonymous-clone">Anonymous Clone</h4>
+<pre class="highlight"><code class="language-bash"># Clone to all nodes
+pcs resource clone vip
+
+# Clone with specific settings
+pcs resource clone vip clone-max=3 clone-node-max=1</code></pre>
+<h4 id="named-clone">Named Clone</h4>
+<pre class="highlight"><code class="language-bash"># Create named clone
+pcs resource create vip ocf:heartbeat:IPaddr2 ip=192.168.1.100
+pcs resource clone vip \
+    clone-max=3 \
+    clone-node-max=1 \
+    interleave=true</code></pre>
+<p><strong>Clone Parameters</strong>:
+- <code>clone-max</code>: Maximum number of copies
+- <code>clone-node-max</code>: Copies per node
+- <code>interleave</code>: Clone ordering with multi-state resources
+- <code>globally-unique</code>: Unique instance per node</p>
+<h3 id="masterslave-resources">Master/Slave Resources</h3>
+<pre class="highlight"><code class="language-bash"># Create master/slave resource
+pcs resource create db ocf:heartbeat:mysql \
+    config=/etc/mysql/my.cnf
+
+pcs resource master master-db db \
+    master-max=1 \
+    master-node-max=1 \
+    clone-max=3 \
+    clone-node-max=1</code></pre>
+<p><strong>Master Parameters</strong>:
+- <code>master-max</code>: Maximum master instances
+- <code>master-node-max</code>: Masters per node
+- <code>clone-max</code>: Total instances
+- <code>clone-node-max</code>: Instances per node</p>
+<h3 id="resource-groups">Resource Groups</h3>
+<pre class="highlight"><code class="language-bash"># Create group
+pcs resource group add web-group vip apache
+
+# Add to existing group
+pcs resource group add web-group nfs_export
+
+# Remove from group
+pcs resource group remove web-group apache</code></pre>
+<p><strong>Group Properties</strong>:
+- Resources start/stop together
+- Ordered start sequence
+- Colocated on same node
+- Group-level stickiness</p>
+<h2 id="constraints">Constraints</h2>
+<h3 id="ordering-constraints">Ordering Constraints</h3>
+<p>Define start/stop order for resources.</p>
+<h4 id="basic-ordering">Basic Ordering</h4>
+<pre class="highlight"><code class="language-bash"># Start vip before apache
+pcs constraint order start vip then apache
+
+# Stop apache before vip
+pcs constraint order stop apache then vip</code></pre>
+<h4 id="ordering-with-kind">Ordering with Kind</h4>
+<pre class="highlight"><code class="language-bash"># Mandatory (default)
+pcs constraint order start vip then apache kind=Mandatory
+
+# Optional
+pcs constraint order start vip then apache kind=Optional
+
+# Serialize
+pcs constraint order start vip then apache kind=Serialize
+
+# Symmetrical ordering
+pcs constraint order start vip then apache symmetrical=true</code></pre>
+<h4 id="resource-sets">Resource Sets</h4>
+<pre class="highlight"><code class="language-bash"># Order multiple resources
+pcs constraint order start vip then start apache \
+    then start nfs_export
+
+# Order with resource sets
+pcs constraint order \
+    start vip then apache \
+    kind=Mandatory \
+    symmetrical=true</code></pre>
+<h3 id="colocation-constraints">Colocation Constraints</h3>
+<p>Define resource placement relationships.</p>
+<h4 id="basic-colocation">Basic Colocation</h4>
+<pre class="highlight"><code class="language-bash"># Apache must run with vip
+pcs constraint colocation add apache with vip
+
+# Apache must run with vip, score 100
+pcs constraint colocation add apache with vip score=100</code></pre>
+<h4 id="negative-colocation">Negative Colocation</h4>
+<pre class="highlight"><code class="language-bash"># Apache must NOT run with vip
+pcs constraint colocation add apache with vip score=-INFINITY</code></pre>
+<h4 id="colocation-score">Colocation Score</h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Score</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>INFINITY</td>
+<td>Must colocate</td>
+</tr>
+<tr>
+<td>High</td>
+<td>Prefer colocate</td>
+</tr>
+<tr>
+<td>0</td>
+<td>No preference</td>
+</tr>
+<tr>
+<td>-High</td>
+<td>Avoid colocate</td>
+</tr>
+<tr>
+<td>-INFINITY</td>
+<td>Must NOT colocate</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="location-constraints">Location Constraints</h3>
+<p>Define preferred nodes for resources.</p>
+<h4 id="basic-location">Basic Location</h4>
+<pre class="highlight"><code class="language-bash"># Prefer node1 for apache
+pcs constraint location apache prefers node1=100
+
+# Avoid node2 for apache
+pcs constraint location apache avoids node2
+
+# Rule-based location
+pcs constraint location apache rule score=100 node#node1</code></pre>
+<h4 id="rule-based-location">Rule-Based Location</h4>
+<pre class="highlight"><code class="language-bash"># Rule based on node attributes
+pcs constraint location apache rule score=100 \
+    #uname eq node1
+
+# Rule with multiple conditions
+pcs constraint location apache rule \
+    score=100 #uname eq node1 \
+    and #uname eq node2
+
+# Rule with expressions
+pcs constraint location apache rule \
+    score=100 defined #master</code></pre>
+<p><strong>Rule Operators</strong>:
+| Operator | Meaning |
+|----------|---------|
+| <code>eq</code> | Equal |
+| <code>ne</code> | Not equal |
+| <code>lt</code> | Less than |
+| <code>lte</code> | Less than or equal |
+| <code>gt</code> | Greater than |
+| <code>gte</code> | Greater than or equal |</p>
+<h3 id="constraint-examples">Constraint Examples</h3>
+<h4 id="three-tier-application">Three-Tier Application</h4>
+<pre class="highlight"><code class="language-bash"># Resources
+pcs resource create vip ocf:heartbeat:IPaddr2 ip=192.168.1.100
+pcs resource create app ocf:heartbeat:apache
+pcs resource create db ocf:heartbeat:mysql config=/etc/mysql/my.cnf
+pcs resource master master-db db
+
+# Order: DB -&gt; App -&gt; VIP
+pcs constraint order start master-db then app
+pcs constraint order start app then vip
+
+# Colocation: All on same node
+pcs constraint colocation add app with master-db
+pcs constraint colocation add vip with app
+
+# Location: Prefer node1 for DB master
+pcs constraint location master-db rule score=100 \
+    #uname eq node1</code></pre>
+<h4 id="activeactive-web-cluster">Active/Active Web Cluster</h4>
+<pre class="highlight"><code class="language-bash"># Clone VIP to all nodes
+pcs resource create vip ocf:heartbeat:IPaddr2 ip=192.168.1.100
+pcs resource clone vip
+
+# Clone Apache to all nodes
+pcs resource create app ocf:heartbeat:apache
+pcs resource clone app
+
+# Load balancer resource
+pcs resource create lb ocf:heartbeat:IPaddr2 ip=192.168.1.200
+pcs resource clone lb</code></pre>
+<h2 id="resource-operations">Resource Operations</h2>
+<h3 id="operation-attributes">Operation Attributes</h3>
+<pre class="highlight"><code class="language-bash"># Custom monitor interval
+pcs resource update vip op \
+    monitor interval=5s timeout=30s
+
+# Start timeout
+pcs resource update vip op \
+    start timeout=20s
+
+# Multiple operations
+pcs resource update vip op \
+    start timeout=20s \
+    stop timeout=20s \
+    monitor interval=10s timeout=20s \
+    monitor interval=30s on-fail=restart role=Started</code></pre>
+<h3 id="operation-types">Operation Types</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>start</td>
+<td>Start resource</td>
+</tr>
+<tr>
+<td>stop</td>
+<td>Stop resource</td>
+</tr>
+<tr>
+<td>monitor</td>
+<td>Check resource health</td>
+</tr>
+<tr>
+<td>validate-all</td>
+<td>Validate configuration</td>
+</tr>
+<tr>
+<td>reload</td>
+<td>Reload configuration</td>
+</tr>
+<tr>
+<td>restart</td>
+<td>Restart resource</td>
+</tr>
+<tr>
+<td>promote</td>
+<td>Promote to master</td>
+</tr>
+<tr>
+<td>demote</td>
+<td>Demote to slave</td>
+</tr>
+<tr>
+<td>notify</td>
+<td>Notification</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="on-fail-actions">On-Fail Actions</h3>
+<pre class="highlight"><code class="language-bash"># Restart on failure
+pcs resource update vip op \
+    monitor on-fail=restart
+
+# Block on failure
+pcs resource update vip op \
+    monitor on-fail=block
+
+# Fence on failure
+pcs resource update vip op \
+    monitor on-fail=fence
+
+# Ignore on failure
+pcs resource update vip op \
+    monitor on-fail=ignore</code></pre>
+<h2 id="stonith-fencing">STONITH - Fencing</h2>
+<h3 id="stonith-overview">STONITH Overview</h3>
+<p>STONITH (Shoot The Other Node In The Head) prevents split-brain by fencing failed nodes.</p>
+<h3 id="stonith-devices">STONITH Devices</h3>
+<h4 id="ipmi-fencing">IPMI Fencing</h4>
+<pre class="highlight"><code class="language-bash"># Create IPMI fence device
+pcs stonith create fence-ipmi \
+    fence_ipmilan \
+    ipaddr=192.168.1.200 \
+    login=admin \
+    passwd=password
+
+# Create per-node IPMI fencing
+pcs stonith create fence-node1 \
+    fence_ipmilan \
+    ipaddr=192.168.1.201 \
+    login=admin \
+    passwd=password \
+    pcmk_host_list=node1
+
+pcs stonith create fence-node2 \
+    fence_ipmilan \
+    ipaddr=192.168.1.202 \
+    login=admin \
+    passwd=password \
+    pcmk_host_list=node2</code></pre>
+<h4 id="ilodrac-fencing">iLO/DRAC Fencing</h4>
+<pre class="highlight"><code class="language-bash"># iLO fencing
+pcs stonith create fence-ilo \
+    fence_ilo \
+    ipaddr=192.168.1.203 \
+    login=admin \
+    passwd=password \
+    pcmk_host_list=node1
+
+# DRAC fencing
+pcs stonith create fence-drac \
+    fence_drac5 \
+    ipaddr=192.168.1.204 \
+    login=admin \
+    passwd=password \
+    pcmk_host_list=node2</code></pre>
+<h4 id="virtual-fencing">Virtual Fencing</h4>
+<pre class="highlight"><code class="language-bash"># VMware fencing
+pcs stonith create fence-vmware \
+    fence_vmware_soap \
+    ipaddr=192.168.1.210 \
+    login=admin \
+    passwd=password \
+    pcmk_host_list="node1 node2 node3"
+
+# Libvirt fencing
+pcs stonith create fence-libvirt \
+    fence_virsh \
+    ipaddr=192.168.1.211 \
+    login=root \
+    passwd=password \
+    pcmk_host_list="node1 node2 node3"</code></pre>
+<h3 id="stonith-configuration">STONITH Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Enable STONITH
+pcs property set stonith-enabled=true
+
+# Set STONITH timeout
+pcs property set stonith-timeout=60s
+
+# Set STONITH action
+pcs property set stonith-action=reboot
+
+# Set stonith-level for redundancy
+pcs stonith level add 1 node1 fence-ipmi,fence-vmware
+pcs stonith level add 2 node1 fence-drac
+
+# Test fencing
+pcs stonith fence node1</code></pre>
+<h3 id="stonith-levels">STONITH Levels</h3>
+<pre class="highlight"><code class="language-bash"># Primary and secondary fencing
+pcs stonith level add 1 node1 fence-ipmi
+pcs stonith level add 2 node1 fence-drac
+
+# Multiple fencing methods
+pcs stonith level add 1 node1 fence-ipmi
+pcs stonith level add 2 node1 fence-ilo
+pcs stonith level add 3 node1 fence-vmware
+
+# View levels
+pcs stonith level</code></pre>
+<h2 id="resource-agents">Resource Agents</h2>
+<h3 id="writing-ocf-agents">Writing OCF Agents</h3>
+<pre class="highlight"><code class="language-bash">#!/bin/bash
+# Description: My custom resource agent
+
+# OCF functions
+. ${OCF_ROOT}/resource.d/heartbeat/.ocf-shellfuncs
+
+# Resource metadata
+meta_data() {
+    cat &lt;&lt;EOF
+&lt;?xml version="1.0"?&gt;
+&lt;resource-agent name="myresource"&gt;
+  &lt;version&gt;1.0&lt;/version&gt;
+  &lt;longdesc&gt;My custom resource&lt;/longdesc&gt;
+  &lt;shortdesc&gt;My custom resource&lt;/shortdesc&gt;
+  &lt;parameters&gt;
+    &lt;parameter name="config"&gt;
+      &lt;longdesc&gt;Configuration file&lt;/longdesc&gt;
+      &lt;shortdesc&gt;Config file&lt;/shortdesc&gt;
+      &lt;content type="string" default=""/&gt;
+    &lt;/parameter&gt;
+  &lt;/parameters&gt;
+  &lt;actions&gt;
+    &lt;action name="start" timeout="20s"/&gt;
+    &lt;action name="stop" timeout="20s"/&gt;
+    &lt;action name="monitor" timeout="20s"/&gt;
+    &lt;action name="validate-all" timeout="20s"/&gt;
+  &lt;/actions&gt;
+&lt;/resource-agent&gt;
+EOF
+}
+
+# Start resource
+myresource_start() {
+    # Start logic here
+    return $OCF_SUCCESS
+}
+
+# Stop resource
+myresource_stop() {
+    # Stop logic here
+    return $OCF_SUCCESS
+}
+
+# Monitor resource
+myresource_monitor() {
+    # Monitor logic here
+    return $OCF_SUCCESS
+}
+
+# Validate configuration
+myresource_validate() {
+    # Validate logic here
+    return $OCF_SUCCESS
+}
+
+# Main
+case "$1" in
+    start) myresource_start ;;
+    stop) myresource_stop ;;
+    monitor) myresource_monitor ;;
+    validate-all) myresource_validate ;;
+    meta-data) meta_data ;;
+    *) echo "Usage: $0 {start|stop|monitor|validate-all|meta-data}" 
+       exit $OCF_ERR_UNIMPLEMENTED ;;
+esac
+
+exit $?</code></pre>
+<h2 id="quick-commands">Quick Commands</h2>
+<h3 id="cluster-status">Cluster Status</h3>
+<pre class="highlight"><code class="language-bash"># Full status
+pcs status
+
+# Cluster status
+pcs status cluster
+
+# Resource status
+pcs status resources
+
+# Node status
+pcs status nodes
+
+# STONITH status
+pcs status stonith</code></pre>
+<h3 id="resource-management_1">Resource Management</h3>
+<pre class="highlight"><code class="language-bash"># Create resource
+pcs resource create vip ocf:heartbeat:IPaddr2 ip=192.168.1.100
+
+# Start resource
 pcs resource start vip
 
-# Constraints
+# Stop resource
+pcs resource stop vip
+
+# Delete resource
+pcs resource delete vip
+
+# Show resource
+pcs resource show vip
+
+# Show all resources
+pcs resource show
+
+# Move resource
+pcs resource move vip node2
+
+# Unmove resource
+pcs resource clear vip</code></pre>
+<h3 id="constraint-management">Constraint Management</h3>
+<pre class="highlight"><code class="language-bash"># Show constraints
+pcs constraint show
+
+# Show ordering constraints
+pcs constraint show --full
+
+# Add ordering
 pcs constraint order start vip then apache
-pcs constraint colocation add apache with vip</code></pre>
+
+# Add colocation
+pcs constraint colocation add apache with vip
+
+# Add location
+pcs constraint location apache prefers node1
+
+# Remove constraint
+pcs constraint remove order-vip-apache</code></pre>
+<h3 id="stonith-management">STONITH Management</h3>
+<pre class="highlight"><code class="language-bash"># Show STONITH devices
+pcs stonith show
+
+# Create STONITH device
+pcs stonith create fence-ipmi fence_ipmilan ipaddr=192.168.1.200
+
+# Test fencing
+pcs stonith fence node1
+
+# Enable STONITH
+pcs property set stonith-enabled=true</code></pre>
 <h2 id="nifty-behaviors">Nifty Behaviors</h2>
 <h3 id="resource-stickiness">Resource Stickiness</h3>
-<p><pre class="highlight"><code class="language-xml">&lt;meta_attributes&gt;
-    &lt;nvpair name="resource-stickiness" value="100"/&gt;
-    &lt;nvpair name="migration-threshold" value="3"/&gt;
-&lt;/meta_attributes&gt;</code></pre>
-<strong>Nifty</strong>: Resources prefer current location but move after failures</p>
+<pre class="highlight"><code class="language-xml">&lt;primitive id="apache" class="ocf" provider="heartbeat" type="apache"&gt;
+    &lt;meta_attributes id="apache-meta"&gt;
+        &lt;nvpair name="resource-stickiness" value="100"/&gt;
+        &lt;nvpair name="migration-threshold" value="3"/&gt;
+    &lt;/meta_attributes&gt;
+&lt;/primitive&gt;</code></pre>
+<p><strong>Nifty</strong>: Resources prefer current location but move after multiple failures</p>
 <h3 id="batch-constraint-updates">Batch Constraint Updates</h3>
-<p><pre class="highlight"><code class="language-bash">pcs constraint order start vip then apache
+<pre class="highlight"><code class="language-bash"># Apply multiple constraints at once
+pcs constraint order start vip then apache
 pcs constraint colocation add apache with vip
-pcs constraint location web-group prefers node1=100</code></pre>
-<strong>Nifty</strong>: Constraints applied as a set, atomic configuration</p>
+pcs constraint location apache prefers node1</code></pre>
+<p><strong>Nifty</strong>: Constraints applied atomically, ensure consistency</p>
+<h3 id="resource-templates">Resource Templates</h3>
+<pre class="highlight"><code class="language-bash"># Create template
+pcs resource create vip-template ocf:heartbeat:IPaddr2 \
+    ip=192.168.1.100 cidr_netmask=24 \
+    clone clone-max=3
+
+# Use template
+pcs resource create vip2 ocf:heartbeat:IPaddr2 \
+    ip=192.168.1.101 cidr_netmask=24</code></pre>
+<p><strong>Nifty</strong>: Reusable resource configurations</p>
+<h3 id="symmetric-clustering">Symmetric Clustering</h3>
+<pre class="highlight"><code class="language-bash"># Clone resource to all nodes
+pcs resource create haproxy ocf:heartbeat:haproxy
+pcs resource clone haproxy
+
+# Interleave with multi-state resource
+pcs resource create db ocf:heartbeat:mysql
+pcs resource master master-db db clone-max=3
+
+pcs resource clone haproxy interleave=true</code></pre>
+<p><strong>Nifty</strong>: Active/active configuration with load balancing</p>
+<h3 id="resource-operations-with-failback">Resource Operations with Failback</h3>
+<pre class="highlight"><code class="language-bash"># Monitor with restart on failure
+pcs resource update vip op \
+    monitor interval=10s timeout=20s on-fail=restart
+
+# Monitor with migration
+pcs resource update vip op \
+    monitor interval=10s timeout=20s on-fail=migrate</code></pre>
+<p><strong>Nifty</strong>: Automatic recovery strategies</p>
+<h2 id="performance-tuning">Performance Tuning</h2>
+<h3 id="cluster-properties">Cluster Properties</h3>
+<pre class="highlight"><code class="language-bash"># Transition timeout
+pcs property set transition-timeout=60s
+
+# Start failure is fatal
+pcs property set start-failure-is-fatal=false
+
+# Stop all resources
+pcs property set stop-orphan-resources=true
+
+# Shutdown timeout
+pcs property set shutdown-timeout=60s
+
+# Resource stickiness
+pcs resource update vip \
+    meta resource-stickiness=100</code></pre>
+<h3 id="resource-optimization">Resource Optimization</h3>
+<pre class="highlight"><code class="language-bash"># Reduce monitor interval
+pcs resource update vip op \
+    monitor interval=5s
+
+# Increase timeout for slow resources
+pcs resource update db op \
+    start timeout=60s \
+    stop timeout=60s
+
+# Enable resource caching
+pcs resource update vip \
+    meta target-role=Started</code></pre>
+<h3 id="load-balancing">Load Balancing</h3>
+<pre class="highlight"><code class="language-bash"># Distribute resources evenly
+pcs constraint location apache prefers node1=50
+pcs constraint location apache prefers node2=50
+
+# Use placement strategy
+pcs property set placement-strategy=default</code></pre>
 <h2 id="security">Security</h2>
-<ul>
-<li>Always enable STONITH</li>
-<li>Secure cluster communication</li>
-<li>Limit cluster daemon permissions</li>
-</ul>
+<h3 id="stonith-security">STONITH Security</h3>
+<pre class="highlight"><code class="language-bash"># Secure IPMI credentials
+pcs stonith create fence-ipmi fence_ipmilan \
+    ipaddr=192.168.1.200 \
+    login=admin \
+    passwd=secure_password
+
+# Use encrypted STONITH
+pcs property set stonith-enabled=true
+pcs property set stonith-timeout=60s</code></pre>
+<h3 id="access-control">Access Control</h3>
+<pre class="highlight"><code class="language-bash"># Limit cluster daemon permissions
+chown root:haclient /etc/corosync/authkey
+chmod 640 /etc/corosync/authkey
+
+# Secure CIB
+chmod 644 /var/lib/pacemaker/cib</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="resource-stuck-starting">Resource Stuck Starting</h3>
+<pre class="highlight"><code class="language-bash"># Check resource agent
+pcs resource debug-resource vip
+
+# Check logs
+journalctl -u pacemaker -f
+
+# Test resource agent manually
+ocf_tester -n vip ocf:heartbeat:IPaddr2 \
+    ip=192.168.1.100</code></pre>
+<h3 id="constraint-violations">Constraint Violations</h3>
+<pre class="highlight"><code class="language-bash"># Show constraints
+pcs constraint show --full
+
+# Show transition history
+pcs resource history
+
+# Check current state
+crm_simulate -Ls</code></pre>
+<h3 id="stonith-failures">STONITH Failures</h3>
+<pre class="highlight"><code class="language-bash"># Test fencing manually
+fence_ipmilan -a 192.168.1.200 -l admin -p password \
+    -o status -m node1
+
+# Check fencing logs
+journalctl -u stonithd -f
+
+# Verify fencing device
+pcs stonith show --full</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Always enable STONITH</strong> in production</li>
+<li><strong>Use resource stickiness</strong> to prevent unnecessary failover</li>
+<li><strong>Set appropriate timeouts</strong> for resources</li>
+<li><strong>Test failover scenarios</strong> regularly</li>
+<li><strong>Monitor resource health</strong> with proper intervals</li>
+<li><strong>Use constraints wisely</strong> - avoid over-constraining</li>
+<li><strong>Document cluster configuration</strong></li>
+<li><strong>Implement alerting</strong> for cluster events</li>
+</ol>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Repository: https://github.com/ClusterLabs/pacemaker</li>
-<li>Documentation: https://www.clusterlabs.org/pacemaker/doc/</li>
+<li><strong>Repository</strong>: https://github.com/ClusterLabs/pacemaker</li>
+<li><strong>Documentation</strong>: https://www.clusterlabs.org/pacemaker/doc/</li>
 </ul>
+<h3 id="key-source-locations">Key Source Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CRM</td>
+<td><code>lib/crm</code></td>
+<td>Cluster Resource Manager</td>
+</tr>
+<tr>
+<td>PE</td>
+<td><code>lib/pengine</code></td>
+<td>Policy Engine</td>
+</tr>
+<tr>
+<td>TE</td>
+<td><code>lib/transitioner</code></td>
+<td>Transition Engine</td>
+</tr>
+<tr>
+<td>LRM</td>
+<td><code>lib/lrmd</code></td>
+<td>Local Resource Manager</td>
+</tr>
+<tr>
+<td>CIB</td>
+<td><code>lib/cib</code></td>
+<td>Cluster Information Base</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -726,11 +1674,113 @@ pcs constraint location web-group prefers node1=100</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
-            Key Features
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#crm-cluster-resource-manager">
+            CRM - Cluster Resource Manager
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#pe-policy-engine">
+            PE - Policy Engine
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#te-transition-engine">
+            TE - Transition Engine
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#lrm-local-resource-manager">
+            LRM - Local Resource Manager
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cib-cluster-information-base">
+            CIB - Cluster Information Base
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#resource-types">
+            Resource Types
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-classes">
+            Resource Classes
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-standards">
+            Resource Standards
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-providers">
+            Resource Providers
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#resource-management">
+            Resource Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#creating-resources">
+            Creating Resources
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-cloning">
+            Resource Cloning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#masterslave-resources">
+            Master/Slave Resources
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-groups">
+            Resource Groups
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#constraints">
+            Constraints
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ordering-constraints">
+            Ordering Constraints
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#colocation-constraints">
+            Colocation Constraints
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#location-constraints">
+            Location Constraints
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#constraint-examples">
+            Constraint Examples
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#resource-operations">
+            Resource Operations
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#operation-attributes">
+            Operation Attributes
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#operation-types">
+            Operation Types
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#on-fail-actions">
+            On-Fail Actions
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#stonith-fencing">
+            STONITH - Fencing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-overview">
+            STONITH Overview
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-devices">
+            STONITH Devices
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-configuration">
+            STONITH Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-levels">
+            STONITH Levels
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#resource-agents">
+            Resource Agents
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#writing-ocf-agents">
+            Writing OCF Agents
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cluster-status">
+            Cluster Status
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-management_1">
+            Resource Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#constraint-management">
+            Constraint Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-management">
+            STONITH Management
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
             Nifty Behaviors
@@ -741,11 +1791,56 @@ pcs constraint location web-group prefers node1=100</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#batch-constraint-updates">
             Batch Constraint Updates
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-templates">
+            Resource Templates
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#symmetric-clustering">
+            Symmetric Clustering
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-operations-with-failback">
+            Resource Operations with Failback
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#performance-tuning">
+            Performance Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cluster-properties">
+            Cluster Properties
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-optimization">
+            Resource Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#load-balancing">
+            Load Balancing
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#security">
             Security
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-security">
+            STONITH Security
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#access-control">
+            Access Control
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#resource-stuck-starting">
+            Resource Stuck Starting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#constraint-violations">
+            Constraint Violations
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stonith-failures">
+            STONITH Failures
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-source-locations">
+            Key Source Locations
         </a>
 </div>
 <div class="h-12"></div>

@@ -509,55 +509,554 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>iSCSI gateway presenting RBD images as SCSI disks over TCP/IP network.</p>
+<p>Internet Small Computer System Interface for block-level storage access over TCP/IP networks.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[SCSI Initiator] --&gt; B[LIO Target Framework]
-    B --&gt; C[TCMU Backend]
-    C --&gt; D[RBD Library]
-    D --&gt; E[RADOS Cluster]
-    A --&gt; F[TCP/IP Network]
-    B --&gt; F
+    subgraph "Initiator Side"
+        A[SCSI Initiator]
+        B[SCSI Layer]
+        C[Block Layer]
+        D[Filesystem]
+    end
+
+    subgraph "Network"
+        E[TCP/IP]
+        F[Network Interface]
+    end
+
+    subgraph "Target Side"
+        G[SCSI Target]
+        H[LIO Target Framework]
+        I[TCMU Backend]
+        J[Target Driver]
+    end
+
+    subgraph "Storage Backend"
+        K[RBD]
+        L[LVM]
+        M[File]
+        N[RAMdisk]
+    end
+
+    A --&gt; B
+    B --&gt; C
+    C --&gt; D
+
+    B --&gt; E
+    G --&gt; E
+
+    E --&gt; F
+
+    G --&gt; H
+    H --&gt; I
+    I --&gt; J
+
+    J --&gt; K
+    J --&gt; L
+    J --&gt; M
+    J --&gt; N
+
+    style G fill:#c8e6c9
+    style H fill:#ffecb3
+    style J fill:#e1f5ff
+    style K fill:#fff3e0
 </div>
-<h2 id="key-features">Key Features</h2>
-<ul>
-<li>LIO target framework for SCSI protocol</li>
-<li>TCMU userspace passthrough</li>
-<li>RBD backend for Ceph integration</li>
-<li>CHAP authentication support</li>
-<li>Multipath I/O support</li>
-</ul>
-<h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># Create RBD image
+<h2 id="core-components">Core Components</h2>
+<h3 id="lio-linux-io-target">LIO (Linux IO Target)</h3>
+<p>SCSI target framework providing target functionality.</p>
+<p><strong>LIO Components</strong>:
+| Component | Description |
+|-----------|-------------|
+| tcmu | Userspace target core |
+| tcm_loop | Loopback target |
+| tcm_qla2xxx | QLogic target |
+| tcm_iblock | Block device backend |
+| tcm_fileio | File backend |
+| tcm_pscsi | Passthrough SCSI |</p>
+<p><strong>LIO Architecture</strong>:</p>
+<div class="mermaid">graph TB
+    A[SCSI Initiator] --&gt; B[TCP/IP]
+    B --&gt; C[tcmu-runner]
+    C --&gt; D[TCMU Handler]
+    D --&gt; E[Storage Backend]
+
+    F[ConfigFS] --&gt; D
+    G[Target CLI] --&gt; F
+
+    style C fill:#c8e6c9
+    style D fill:#ffecb3
+    style E fill:#e1f5ff
+</div>
+<h3 id="tcmu-target-core-module-userspace">TCMU (Target Core Module Userspace)</h3>
+<p>Userspace target core for flexible backends.</p>
+<p><strong>TCMU Operation</strong>:</p>
+<div class="mermaid">sequenceDiagram
+    participant I as Initiator
+    participant T as TCMU
+    participant R as tcmu-runner
+    participant B as Backend
+
+    I-&gt;&gt;T: SCSI Command
+    T-&gt;&gt;R: Submit to userspace
+    R-&gt;&gt;B: Process command
+    B-&gt;&gt;R: Response
+    R-&gt;&gt;T: Complete command
+    T-&gt;&gt;I: SCSI Response
+
+    style R fill:#c8e6c9
+    style B fill:#e1f5ff
+</div>
+<p><strong>TCMU Benefits</strong>:
+- Userspace implementation
+- Flexible backends
+- No kernel modifications
+- Easier debugging</p>
+<h2 id="target-configuration">Target Configuration</h2>
+<h3 id="lio-target-setup">LIO Target Setup</h3>
+<pre class="highlight"><code class="language-bash"># Install LIO target
+apt-get install targetcli-fb
+
+# Start target service
+systemctl enable target
+systemctl start target
+
+# Open firewall
+firewall-cmd --permanent --add-port=3260/tcp
+firewall-cmd --reload</code></pre>
+<h3 id="creating-targets">Creating Targets</h3>
+<pre class="highlight"><code class="language-bash"># Enter targetcli
+targetcli
+
+# Create backstore
+# Block device backend
+backstores/block create name=block_backend dev=/dev/vg0/vm1
+
+# File backend
+backstores/fileio create name=file_backend \
+    path=/var/lib/iscsi/disk.img size=10G
+
+# Create target
+iscsi/ create iqn.2026-01.com.example:storage.target1
+
+# Create LUN
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/luns create \
+    /backstores/block/block_backend
+
+# Create ACL
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/acls create \
+    iqn.2026-01.com.example:initiator1
+
+# Save configuration
+saveconfig
+exit</code></pre>
+<h3 id="target-configuration-structure">Target Configuration Structure</h3>
+<pre class="highlight"><code>/
+├── backstores/
+│   ├── block/
+│   ├── fileio/
+│   ├── pscsi/
+│   └── ramdisk/
+├── iscsi/
+│   └── iqn.2026-01.com.example:storage.target1/
+│       ├── tpg1/
+│       │   ├── acls/
+│       │   ├── luns/
+│       │   ├── portals/
+│       │   └── params/
+│       └── tpg2/
+├── loopback/
+└── core/</code></pre>
+<h2 id="initiator-configuration">Initiator Configuration</h2>
+<h3 id="iscsi-initiator-setup">iSCSI Initiator Setup</h3>
+<pre class="highlight"><code class="language-bash"># Install iSCSI initiator
+apt-get install open-iscsi
+
+# Configure initiator name
+vim /etc/iscsi/initiatorname.iscsi
+# InitiatorName=iqn.2026-01.com.example:initiator1
+
+# Start initiator service
+systemctl enable iscsid
+systemctl start iscsid</code></pre>
+<h3 id="discovery">Discovery</h3>
+<pre class="highlight"><code class="language-bash"># Discover targets
+iscsiadm -m discovery -t st -p 192.168.1.100
+
+# Discover with CHAP
+iscsiadm -m discovery -t st -p 192.168.1.100 \
+    -o new -u username -w password
+
+# Discover targets on subnet
+iscsiadm -m discovery -t st -p 192.168.1.0/24</code></pre>
+<h3 id="connection">Connection</h3>
+<pre class="highlight"><code class="language-bash"># Login to target
+iscsiadm -m node -T iqn.2026-01.com.example:storage.target1 \
+    -p 192.168.1.100 -l
+
+# Login to all discovered targets
+iscsiadm -m node -l
+
+# Logout from target
+iscsiadm -m node -T iqn.2026-01.com.example:storage.target1 \
+    -p 192.168.1.100 -u
+
+# Logout from all targets
+iscsiadm -m node -u</code></pre>
+<h3 id="persistent-login">Persistent Login</h3>
+<pre class="highlight"><code class="language-bash"># Automatic login
+iscsiadm -m node -T iqn.2026-01.com.example:storage.target1 \
+    -p 192.168.1.100 --op update -n node.startup -v automatic
+
+# Manual login
+iscsiadm -m node -T iqn.2026-01.com.example:storage.target1 \
+    -p 192.168.1.100 --op update -n node.startup -v manual</code></pre>
+<h2 id="chap-authentication">CHAP Authentication</h2>
+<h3 id="one-way-chap">One-Way CHAP</h3>
+<p><strong>Target Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Set CHAP username and password
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/acls/ \
+    iqn.2026-01.com.example:initiator1 set auth \
+    userid=username
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/acls/ \
+    iqn.2026-01.com.example:initiator1 set auth \
+    password=password123
+
+# Enable authentication
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1 set attribute \
+    authentication=1</code></pre></p>
+<p><strong>Initiator Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Set CHAP credentials
+vim /etc/iscsi/nodes/iqn.2026-01.com.example:storage.target1/192.168.1.100,3260/default
+node.session.auth.authmethod = CHAP
+node.session.auth.username = username
+node.session.auth.password = password123</code></pre></p>
+<h3 id="mutual-chap">Mutual CHAP</h3>
+<p><strong>Target Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Set mutual CHAP
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/acls/ \
+    iqn.2026-01.com.example:initiator1 set auth \
+    userid=username
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/acls/ \
+    iqn.2026-01.com.example:initiator1 set auth \
+    password=password123
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/acls/ \
+    iqn.2026-01.com.example:initiator1 set auth \
+    mutual_userid=mutual_username
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/acls/ \
+    iqn.2026-01.com.example:initiator1 set auth \
+    mutual_password=mutual_password123</code></pre></p>
+<p><strong>Initiator Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Set mutual CHAP
+vim /etc/iscsi/nodes/iqn.2026-01.com.example:storage.target1/192.168.1.100,3260/default
+node.session.auth.authmethod = CHAP
+node.session.auth.username = username
+node.session.auth.password = password123
+node.session.auth.username_in = mutual_username
+node.session.auth.password_in = mutual_password123</code></pre></p>
+<h2 id="multipath-io">Multipath I/O</h2>
+<h3 id="multipath-setup">Multipath Setup</h3>
+<pre class="highlight"><code class="language-bash"># Install multipath tools
+apt-get install multipath-tools
+
+# Configure multipath
+vim /etc/multipath.conf
+
+defaults {
+    user_friendly_names yes
+    find_multipaths yes
+}</code></pre>
+<h3 id="multipath-configuration">Multipath Configuration</h3>
+<pre class="highlight"><code class="language-conf"># /etc/multipath.conf
+defaults {
+    user_friendly_names yes
+    find_multipaths yes
+    path_selector "round-robin 0"
+    path_grouping_policy multibus
+    failback immediate
+    no_path_retry queue
+    rr_min_io 1000
+    rr_min_io_rq 1
+}
+
+devices {
+    device {
+        vendor "LIO-ORG"
+        product "TCMU device"
+        path_grouping_policy "multibus"
+        getuid_callout "/lib/udev/scsi_id --whitelisted --replace-whitespace --device=/dev/%n"
+        path_checker "tur"
+    }
+}
+
+blacklist {
+    devnode "^sd[a-z]+"
+}</code></pre>
+<h3 id="multipath-management">Multipath Management</h3>
+<pre class="highlight"><code class="language-bash"># Scan for multipath devices
+multipath -F
+multipath -v2
+
+# List multipath devices
+multipath -ll
+
+# Show device maps
+multipath -ll
+
+# Show device paths
+multipath -l
+
+# Flush multipath devices
+multipath -F</code></pre>
+<h2 id="performance-tuning">Performance Tuning</h2>
+<h3 id="target-tuning">Target Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Set queue depth
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1 set attribute \
+    max_cmd_sn=65536
+
+# Set session parameters
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1 set attribute \
+    nodeacl.auth.username=username
+
+# Set queue parameters
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1 set attribute \
+    cmdsn_depth=128</code></pre>
+<h3 id="initiator-tuning">Initiator Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Set queue depth
+vim /etc/iscsi/iscsid.conf
+node.session.cmds_max=128
+
+# Set initial login retries
+node.session.initial_login_retry_max=8
+
+# Set timeout values
+node.session.timeo.replacement_timeout=120
+node.conn[0].timeo.login_timeout=15
+node.conn[0].timeo.logout_timeout=15
+
+# Enable large receive offload
+node.conn[0].iscsi.HeaderDigest=None
+node.conn[0].iscsi.DataDigest=None
+node.conn[0].iscsi.IFMarker=No
+node.conn[0].iscsi.OFMarker=No</code></pre>
+<h2 id="high-availability">High Availability</h2>
+<h3 id="ha-gateway-setup">HA Gateway Setup</h3>
+<pre class="highlight"><code class="language-bash"># Configure multiple portals
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/portals/ create \
+    192.168.1.100:3260
+iscsi/iqn.2026-01.com.example:storage.target1/tpg1/portals/ create \
+    192.168.1.101:3260
+
+# Create target with multiple portals
+iscsi/ create iqn.2026-01.com.example:storage.target2
+iscsi/iqn.2026-01.com.example:storage.target2/tpg1/portals/ create \
+    192.168.1.102:3260
+iscsi/iqn.2026-01.com.example:storage.target2/tpg1/portals/ create \
+    192.168.1.103:3260</code></pre>
+<h3 id="load-balancing">Load Balancing</h3>
+<pre class="highlight"><code class="language-bash"># Round-robin path selection
+path_selector "round-robin 0"
+
+# Least queue depth
+path_selector "queue-depth 0"
+
+# Service time
+path_selector "service-time 0"</code></pre>
+<h2 id="ceph-iscsi-gateway">Ceph iSCSI Gateway</h2>
+<h3 id="ceph-iscsi-gateway-setup">Ceph iSCSI Gateway Setup</h3>
+<pre class="highlight"><code class="language-bash"># Install Ceph iSCSI gateway
+apt-get install ceph-iscsi
+apt-get install tcmu-runner
+apt-get install targetcli-fb
+
+# Create RBD image
 rbd create rbd/disk1 --size 100G
 
-# Configure iSCSI gateway
-ceph orch apply iscsi gateway.yml
+# Create iSCSI gateway configuration
+cat &gt; gateway.yml &lt;&lt;EOF
+service_type: iscsi
+service_id: iscsi
+placement:
+  hosts:
+    - gw1
+    - gw2
+spec:
+  pools:
+    - rbd
+  api_user: admin
+  api_secret: AQATjVdhSx3pGBAA2C7C1C9DjFwB2bY8x0l6g==
+  trusted_ip_list: 192.168.1.100,192.168.1.101
+EOF
 
-# Target management
-gwcli.py target create &lt;target-iqn&gt;
-gwcli.py lun create &lt;target-iqn&gt; 0 \
+# Apply gateway configuration
+ceph orch apply -i gateway.yml</code></pre>
+<h3 id="gateway-cli">Gateway CLI</h3>
+<pre class="highlight"><code class="language-bash"># Connect to gateway
+gwcli.py
+
+# Create target
+target create iqn.2026-01.com.example:ceph.target1
+
+# Create LUN
+lun create iqn.2026-01.com.example:ceph.target1 0 \
     --pool rbd --image disk1
 
-# Initiator discovery
-iscsiadm -m discovery -t st -p &lt;target-ip&gt;
-iscsiadm -m node -T &lt;target-iqn&gt; -p &lt;target-ip&gt; --login</code></pre>
-<h2 id="nifty-behaviors">Nifty Behaviors</h2>
-<h3 id="chap-authentication">CHAP Authentication</h3>
-<p><pre class="highlight"><code class="language-bash"># Configure CHAP on gateway
-gwcli.py target set_chap &lt;target-iqn&gt; \
-    --user &lt;username&gt; --password &lt;password&gt;</code></pre>
-<strong>Nifty</strong>: Secure iSCSI connections</p>
-<h3 id="ha-gateway-groups">HA Gateway Groups</h3>
-<p><pre class="highlight"><code class="language-bash"># Create gateway group
-gwcli.py group create &lt;group-name&gt;
-gwcli.py group add_gateway &lt;group-name&gt; &lt;gateway-host&gt;</code></pre>
-<strong>Nifty</strong>: Redundant iSCSI gateways</p>
+# Create client
+client create iqn.2026-01.com.example:initiator1
+
+# Add client to target
+client add iqn.2026-01.com.example:initiator1 \
+    --lun 0
+
+# Set CHAP
+client auth iqn.2026-01.com.example:initiator1 \
+    --user username --password password</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="discovery-issues">Discovery Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check target service
+systemctl status target
+
+# Check network
+ping 192.168.1.100
+telnet 192.168.1.100 3260
+
+# Check firewall
+iptables -L -n | grep 3260
+
+# Check initiator service
+systemctl status iscsid
+
+# Discover targets
+iscsiadm -m discovery -t st -p 192.168.1.100 -d</code></pre>
+<h3 id="connection-issues">Connection Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check initiator logs
+journalctl -u iscsid -f
+
+# Check target logs
+journalctl -u target -f
+
+# Check session status
+iscsiadm -m session
+
+# Check node status
+iscsiadm -m node -T iqn.2026-01.com.example:storage.target1
+
+# Test connection
+iscsiadm -m session -P 3</code></pre>
+<h3 id="performance-issues">Performance Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check multipath
+multipath -ll
+
+# Check I/O
+iostat -x 1
+
+# Check network
+sar -n DEV 1
+
+# Check initiator configuration
+cat /etc/iscsi/iscsid.conf
+
+# Check target configuration
+targetcli ls</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Use CHAP authentication</strong> for security</li>
+<li><strong>Enable multipath</strong> for redundancy</li>
+<li><strong>Configure HA gateways</strong> for high availability</li>
+<li><strong>Use dedicated network</strong> for iSCSI</li>
+<li><strong>Monitor iSCSI connections</strong> regularly</li>
+<li><strong>Test failover</strong> scenarios</li>
+<li><strong>Tune queue depth</strong> for performance</li>
+<li><strong>Use LUN masking</strong> for access control</li>
+<li><strong>Document configuration</strong> thoroughly</li>
+<li><strong>Regular backups</strong> of configuration</li>
+</ol>
+<h2 id="quick-commands">Quick Commands</h2>
+<h3 id="target-commands">Target Commands</h3>
+<pre class="highlight"><code class="language-bash"># Enter targetcli
+targetcli
+
+# Save configuration
+saveconfig
+
+# Restore configuration
+restoreconfig /etc/target/saveconfig.json
+
+# View configuration
+ls
+cd /
+ls</code></pre>
+<h3 id="initiator-commands">Initiator Commands</h3>
+<pre class="highlight"><code class="language-bash"># Discover targets
+iscsiadm -m discovery -t st -p 192.168.1.100
+
+# Login to target
+iscsiadm -m node -T iqn.2026-01.com.example:storage.target1 -p 192.168.1.100 -l
+
+# Logout from target
+iscsiadm -m node -T iqn.2026-01.com.example:storage.target1 -p 192.168.1.100 -u
+
+# List sessions
+iscsiadm -m session
+
+# Delete node
+iscsiadm -m node -T iqn.2026-01.com.example:storage.target1 -p 192.168.1.100 --op delete</code></pre>
+<h3 id="multipath-commands">Multipath Commands</h3>
+<pre class="highlight"><code class="language-bash"># Scan devices
+multipath -F
+multipath -v2
+
+# List devices
+multipath -ll
+
+# Show device status
+multipath -ll mpatha
+
+# Resize multipath
+multipathd -k'resize map mpatha'</code></pre>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Repository: https://github.com/ceph/ceph</li>
-<li>Documentation: https://docs.ceph.com/en/latest/rbd/iscsi-overview/</li>
+<li><strong>Repository</strong>: https://github.com/linux-rdma/lio-core</li>
+<li><strong>Ceph iSCSI</strong>: https://github.com/ceph/ceph/tree/master/ceph-iscsi</li>
+<li><strong>Documentation</strong>: https://linux-iscsi.org/</li>
+<li><strong>LIO Documentation</strong>: https://github.com/open-iscsi/targetcli-fb</li>
 </ul>
+<h3 id="key-components">Key Components</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LIO Kernel</td>
+<td><code>drivers/target/</code></td>
+<td>Kernel target</td>
+</tr>
+<tr>
+<td>tcmu-runner</td>
+<td><code>tcmu-runner/</code></td>
+<td>Userspace runner</td>
+</tr>
+<tr>
+<td>targetcli</td>
+<td><code>targetcli/</code></td>
+<td>Management tool</td>
+</tr>
+<tr>
+<td>open-iscsi</td>
+<td><code>open-iscsi/</code></td>
+<td>Initiator</td>
+</tr>
+<tr>
+<td>multipath</td>
+<td><code>multipath-tools/</code></td>
+<td>Multipath IO</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -720,23 +1219,122 @@ gwcli.py group add_gateway &lt;group-name&gt; &lt;gateway-host&gt;</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
-            Key Features
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#lio-linux-io-target">
+            LIO (Linux IO Target)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#tcmu-target-core-module-userspace">
+            TCMU (Target Core Module Userspace)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#target-configuration">
+            Target Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#lio-target-setup">
+            LIO Target Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#creating-targets">
+            Creating Targets
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#target-configuration-structure">
+            Target Configuration Structure
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#initiator-configuration">
+            Initiator Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#iscsi-initiator-setup">
+            iSCSI Initiator Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#discovery">
+            Discovery
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#connection">
+            Connection
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#persistent-login">
+            Persistent Login
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#chap-authentication">
+            CHAP Authentication
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#one-way-chap">
+            One-Way CHAP
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#mutual-chap">
+            Mutual CHAP
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#multipath-io">
+            Multipath I/O
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#multipath-setup">
+            Multipath Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#multipath-configuration">
+            Multipath Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#multipath-management">
+            Multipath Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#performance-tuning">
+            Performance Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#target-tuning">
+            Target Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#initiator-tuning">
+            Initiator Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#high-availability">
+            High Availability
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ha-gateway-setup">
+            HA Gateway Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#load-balancing">
+            Load Balancing
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#ceph-iscsi-gateway">
+            Ceph iSCSI Gateway
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ceph-iscsi-gateway-setup">
+            Ceph iSCSI Gateway Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#gateway-cli">
+            Gateway CLI
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#discovery-issues">
+            Discovery Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#connection-issues">
+            Connection Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#performance-issues">
+            Performance Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
-            Nifty Behaviors
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#target-commands">
+            Target Commands
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#chap-authentication">
-            CHAP Authentication
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#initiator-commands">
+            Initiator Commands
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ha-gateway-groups">
-            HA Gateway Groups
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#multipath-commands">
+            Multipath Commands
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-components">
+            Key Components
         </a>
 </div>
 <div class="h-12"></div>

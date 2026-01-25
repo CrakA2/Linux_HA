@@ -509,69 +509,791 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>Open source multilayer virtual switch for managing VM networking.</p>
+<p>Production-grade multilayer virtual switch for managing VM networking with OpenFlow support and advanced features.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[VM1 eth0] --&gt; B[OVS Bridge br0]
-    A[VM2 eth0] --&gt; B
-    A[VM3 eth0] --&gt; B
+    subgraph "Virtual Machines"
+        A[VM1 eth0]
+        B[VM2 eth0]
+        C[VM3 eth0]
+    end
 
-    B --&gt; C[OVS Database]
-    B --&gt; D[Controller]
+    subgraph "OVS Components"
+        D[OVS Bridge br0]
+        E[OVS Database ovsdb-server]
+        F[OVS Daemon ovs-vswitchd]
+        G[Flow Tables]
+        H[Port Table]
+        I[Controller]
+        J[OpenFlow Protocol]
+    end
 
-    E[Host eth0] --&gt; F[OVS Bridge br0]
-    F --&gt; B
+    subgraph "Physical Network"
+        K[Host eth0]
+        L[Host eth1]
+        M[Physical Switch]
+    end
 
-    G[Host eth1] --&gt; H[OVS Bridge br1]
-    H --&gt; B
+    subgraph "Management"
+        N[ovs-vsctl CLI]
+        O[ovs-ofctl CLI]
+        P[Remote Controller]
+    end
 
-    I[Management Tools] --&gt; B
+    A --&gt; D
+    B --&gt; D
+    C --&gt; D
 
-    style A fill:#e1f5ff
+    K --&gt; D
+    L --&gt; D
+
+    D --&gt; E
+    D --&gt; F
+    D --&gt; G
+    D --&gt; H
+    D --&gt; I
+
+    I --&gt; J
+    I --&gt; P
+
+    N --&gt; E
+    N --&gt; F
+    O --&gt; G
+
+    D --&gt; M
+
+    style D fill:#c8e6c9
+    style E fill:#ffecb3
+    style G fill:#e1f5ff
+    style P fill:#fff3e0
+</div>
+<h2 id="core-components">Core Components</h2>
+<h3 id="ovs-vswitchd">ovs-vswitchd</h3>
+<p>Main daemon implementing the switch datapath and OpenFlow protocol.</p>
+<p><strong>Responsibilities</strong>:
+- Manage bridge datapath
+- Process OpenFlow rules
+- Forward packets between ports
+- Collect statistics
+- Communicate with controller</p>
+<p><strong>Datapath Types</strong>:
+- <strong>Netlink</strong>: Linux kernel datapath (default)
+- <strong>DPDK</strong>: Userspace datapath for high performance
+- <strong>AF_XDP</strong>: High-performance Linux datapath</p>
+<p><strong>Datapath Flow</strong>:</p>
+<div class="mermaid">graph LR
+    A[Packet In] --&gt; B[Packet Parser]
+    B --&gt; C[Flow Table Lookup]
+    C --&gt; D{Match Found?}
+    D --&gt;|Yes| E[Execute Actions]
+    D --&gt;|No| F[Send to Controller]
+    E --&gt; G[Forward/MOD/DROP]
+    F --&gt; H[Controller Decision]
+    H --&gt; I[Install Flow]
+    I --&gt; E
+
     style B fill:#c8e6c9
     style E fill:#e1f5ff
-    style G fill:#e1f5ff
-    style I fill:#ffecb3
+    style F fill:#ffecb3
 </div>
+<h3 id="ovsdb-server">ovsdb-server</h3>
+<p>Configuration database daemon storing OVS state.</p>
+<p><strong>Database Structure</strong>:
+- <code>Open_vSwitch</code>: Switch configuration
+- <code>Bridge</code>: Bridge definitions
+- <code>Port</code>: Port configurations
+- <code>Interface</code>: Interface settings
+- <code>Controller</code>: Controller connections
+- <code>Flow_Table</code>: Flow table settings
+- <code>QoS</code>: Quality of Service
+- <code>Queue</code>: Queue configurations</p>
+<p><strong>Database Operations</strong>:
+<pre class="highlight"><code class="language-bash"># Connect to database
+ovsdb-client connect unix:/var/run/openvswitch/db.sock
+
+# Monitor changes
+ovsdb-client monitor Open_vSwitch Bridge Port Interface
+
+# Dump database
+ovsdb-client dump</code></pre></p>
+<h3 id="openflow-protocol">OpenFlow Protocol</h3>
+<p>Standard protocol for SDN controller communication.</p>
+<p><strong>OpenFlow Versions</strong>:
+- OpenFlow 1.0: Basic features
+- OpenFlow 1.3: Extended features
+- OpenFlow 1.4: Group tables, meter tables
+- OpenFlow 1.5: Packet-out bundles</p>
+<p><strong>OpenFlow Messages</strong>:
+- <strong>Controller-to-Switch</strong>: Features, Config, Modify, Packet-Out, Stats
+- <strong>Asynchronous</strong>: Packet-In, Flow-Removed, Port-Status
+- <strong>Symmetric</strong>: Hello, Echo, Error, Vendor</p>
 <h2 id="key-features">Key Features</h2>
-<ul>
-<li>Standard Linux bridge compatibility</li>
-<li>Flow-based switching</li>
-<li>Network isolation with VLANs</li>
-<li>Bonding and trunking support</li>
-<li>Remote management protocol</li>
-</ul>
-<h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># Bridge Management
+<h3 id="standard-linux-bridge-compatibility">Standard Linux Bridge Compatibility</h3>
+<pre class="highlight"><code class="language-bash"># Create OVS bridge (works like Linux bridge)
 ovs-vsctl add-br br0
+
+# Add ports
+ovs-vsctl add-port br0 eth0
+ovs-vsctl add-port br0 vnet0
+
+# Configure IP
+ip addr add 192.168.1.100/24 dev br0
+ip link set br0 up</code></pre>
+<h3 id="flow-based-switching">Flow-Based Switching</h3>
+<pre class="highlight"><code class="language-bash"># Add flow rule
+ovs-ofctl add-flow br0 \
+    "priority=100,ip,nw_dst=192.168.1.100,actions=output:2"
+
+# View flows
+ovs-ofctl dump-flows br0
+
+# Delete flow
+ovs-ofctl del-flows br0</code></pre>
+<h3 id="network-isolation-with-vlans">Network Isolation with VLANs</h3>
+<pre class="highlight"><code class="language-bash"># Add VLAN tagged port
+ovs-vsctl add-port br0 eth0 tag=10
+
+# Add VLAN trunk port
+ovs-vsctl add-port br0 eth1 vlan_mode=trunk \
+    trunks=10,20,30
+
+# Add native VLAN port
+ovs-vsctl add-port br0 eth2 vlan_mode=native-tagged tag=100</code></pre>
+<h3 id="bonding-and-trunking">Bonding and Trunking</h3>
+<pre class="highlight"><code class="language-bash"># Add LACP bond
+ovs-vsctl add-bond bond0 eth0 eth1 \
+    lacp=active \
+    bond_mode=balance-tcp
+
+# Add active-backup bond
+ovs-vsctl add-bond bond0 eth0 eth1 \
+    bond_mode=active-backup
+
+# Add SLB bond
+ovs-vsctl add-bond bond0 eth0 eth1 \
+    bond_mode=balance-slb</code></pre>
+<h3 id="remote-management">Remote Management</h3>
+<pre class="highlight"><code class="language-bash"># Enable remote management
+ovs-vsctl set-manager ptcp:6640
+
+# Connect with SSL
+ovs-vsctl set-protocol ssl
+ovs-vsctl set-ssl \
+    /etc/openvswitch/privkey.pem \
+    /etc/openvswitch/cert.pem \
+    /etc/openvswitch/cacert.pem
+
+# Connect to controller
+ovs-vsctl set-controller br0 tcp:192.168.1.200:6653</code></pre>
+<h2 id="flow-tables">Flow Tables</h2>
+<h3 id="flow-table-structure">Flow Table Structure</h3>
+<div class="mermaid">graph TB
+    A[Flow Table 0] --&gt;|Miss| B[Flow Table 1]
+    A --&gt;|Match| C[Execute Actions]
+    B --&gt;|Miss| D[Flow Table 2]
+    B --&gt;|Match| C
+    D --&gt;|Miss| E[Controller]
+    D --&gt;|Match| C
+
+    style A fill:#c8e6c9
+    style B fill:#e1f5ff
+    style C fill:#ffecb3
+    style E fill:#fff3e0
+</div>
+<h3 id="flow-rules">Flow Rules</h3>
+<h4 id="basic-flow">Basic Flow</h4>
+<pre class="highlight"><code class="language-bash"># Simple flow: forward to output port
+ovs-ofctl add-flow br0 \
+    "priority=100,in_port=1,actions=output:2"</code></pre>
+<h4 id="ip-flow">IP Flow</h4>
+<pre class="highlight"><code class="language-bash"># Forward specific IP
+ovs-ofctl add-flow br0 \
+    "priority=100,ip,nw_src=192.168.1.100,actions=output:3"
+
+# Forward specific destination IP
+ovs-ofctl add-flow br0 \
+    "priority=100,ip,nw_dst=192.168.1.200,actions=output:2"</code></pre>
+<h4 id="tcpudp-flow">TCP/UDP Flow</h4>
+<pre class="highlight"><code class="language-bash"># Forward TCP traffic
+ovs-ofctl add-flow br0 \
+    "priority=100,tcp,tp_dst=80,actions=output:2"
+
+# Forward UDP traffic
+ovs-ofctl add-flow br0 \
+    "priority=100,udp,tp_dst=53,actions=output:2"</code></pre>
+<h4 id="vlan-flow">VLAN Flow</h4>
+<pre class="highlight"><code class="language-bash"># Forward VLAN 10
+ovs-ofctl add-flow br0 \
+    "priority=100,vlan_vid=10,actions=output:2"
+
+# Strip VLAN and forward
+ovs-ofctl add-flow br0 \
+    "priority=100,vlan_vid=10,actions=strip_vlan,output:2"</code></pre>
+<h4 id="modifying-flows">Modifying Flows</h4>
+<pre class="highlight"><code class="language-bash"># Modify source IP
+ovs-ofctl add-flow br0 \
+    "priority=100,ip,nw_src=10.0.0.0/8,actions=mod_nw_src:192.168.1.100,output:2"
+
+# Modify VLAN
+ovs-ofctl add-flow br0 \
+    "priority=100,actions=mod_vlan_vid:20,output:2"</code></pre>
+<h3 id="flow-actions">Flow Actions</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>output</td>
+<td>Send to port</td>
+<td><code>output:2</code></td>
+</tr>
+<tr>
+<td>normal</td>
+<td>Forward normally</td>
+<td><code>normal</code></td>
+</tr>
+<tr>
+<td>flood</td>
+<td>Flood to all ports</td>
+<td><code>flood</code></td>
+</tr>
+<tr>
+<td>all</td>
+<td>Send to all ports</td>
+<td><code>all</code></td>
+</tr>
+<tr>
+<td>local</td>
+<td>Send to local bridge</td>
+<td><code>local</code></td>
+</tr>
+<tr>
+<td>controller</td>
+<td>Send to controller</td>
+<td><code>controller</code></td>
+</tr>
+<tr>
+<td>drop</td>
+<td>Drop packet</td>
+<td><code>drop</code></td>
+</tr>
+<tr>
+<td>mod_vlan_vid</td>
+<td>Modify VLAN</td>
+<td><code>mod_vlan_vid:10</code></td>
+</tr>
+<tr>
+<td>strip_vlan</td>
+<td>Remove VLAN</td>
+<td><code>strip_vlan</code></td>
+</tr>
+<tr>
+<td>push_vlan</td>
+<td>Add VLAN</td>
+<td><code>push_vlan:0x8100</code></td>
+</tr>
+<tr>
+<td>pop_vlan</td>
+<td>Remove VLAN tag</td>
+<td><code>pop_vlan</code></td>
+</tr>
+<tr>
+<td>mod_nw_src</td>
+<td>Modify source IP</td>
+<td><code>mod_nw_src:10.0.0.1</code></td>
+</tr>
+<tr>
+<td>mod_nw_dst</td>
+<td>Modify dest IP</td>
+<td><code>mod_nw_dst:10.0.0.2</code></td>
+</tr>
+<tr>
+<td>mod_tp_src</td>
+<td>Modify source port</td>
+<td><code>mod_tp_src:8080</code></td>
+</tr>
+<tr>
+<td>mod_tp_dst</td>
+<td>Modify dest port</td>
+<td><code>mod_tp_dst:80</code></td>
+</tr>
+<tr>
+<td>resubmit</td>
+<td>Resubmit to table</td>
+<td><code>resubmit:1</code></td>
+</tr>
+<tr>
+<td>goto_table</td>
+<td>Jump to table</td>
+<td><code>goto_table:1</code></td>
+</tr>
+<tr>
+<td>meter</td>
+<td>Apply meter</td>
+<td><code>meter:1</code></td>
+</tr>
+<tr>
+<td>group</td>
+<td>Execute group</td>
+<td><code>group:1</code></td>
+</tr>
+<tr>
+<td>learn</td>
+<td>Learn flow</td>
+<td><code>learn(table=1,...)</code></td>
+</tr>
+<tr>
+<td>exit</td>
+<td>Stop processing</td>
+<td><code>exit</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="flow-matching-fields">Flow Matching Fields</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>in_port</td>
+<td>Input port</td>
+<td><code>in_port=1</code></td>
+</tr>
+<tr>
+<td>dl_src</td>
+<td>Source MAC</td>
+<td><code>dl_src=aa:bb:cc:dd:ee:ff</code></td>
+</tr>
+<tr>
+<td>dl_dst</td>
+<td>Destination MAC</td>
+<td><code>dl_dst=00:11:22:33:44:55</code></td>
+</tr>
+<tr>
+<td>dl_type</td>
+<td>Ethernet type</td>
+<td><code>dl_type=0x0800</code></td>
+</tr>
+<tr>
+<td>vlan_vid</td>
+<td>VLAN ID</td>
+<td><code>vlan_vid=10</code></td>
+</tr>
+<tr>
+<td>vlan_pcp</td>
+<td>VLAN priority</td>
+<td><code>vlan_pcp=3</code></td>
+</tr>
+<tr>
+<td>ip</td>
+<td>IP protocol</td>
+<td><code>ip</code></td>
+</tr>
+<tr>
+<td>nw_src</td>
+<td>Source IP</td>
+<td><code>nw_src=192.168.1.100</code></td>
+</tr>
+<tr>
+<td>nw_dst</td>
+<td>Destination IP</td>
+<td><code>nw_dst=192.168.1.200</code></td>
+</tr>
+<tr>
+<td>nw_proto</td>
+<td>IP protocol</td>
+<td><code>nw_proto=6</code></td>
+</tr>
+<tr>
+<td>nw_tos</td>
+<td>IP ToS</td>
+<td><code>nw_tos=0</code></td>
+</tr>
+<tr>
+<td>tp_src</td>
+<td>Source port</td>
+<td><code>tp_src=80</code></td>
+</tr>
+<tr>
+<td>tp_dst</td>
+<td>Destination port</td>
+<td><code>tp_dst=8080</code></td>
+</tr>
+<tr>
+<td>icmp_type</td>
+<td>ICMP type</td>
+<td><code>icmp_type=8</code></td>
+</tr>
+<tr>
+<td>icmp_code</td>
+<td>ICMP code</td>
+<td><code>icmp_code=0</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="controllers">Controllers</h2>
+<h3 id="controller-configuration">Controller Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Set controller
+ovs-vsctl set-controller br0 tcp:192.168.1.200:6653
+
+# Set multiple controllers
+ovs-vsctl set-controller br0 \
+    tcp:192.168.1.200:6653 \
+    tcp:192.168.1.201:6653
+
+# Set controller inactivity probe
+ovs-vsctl set controller br0 inactivity_probe=10
+
+# Set controller fail mode
+ovs-vsctl set-fail-mode br0 secure</code></pre>
+<h3 id="controller-fail-modes">Controller Fail Modes</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>standalone</td>
+<td>Switch forwards packets normally without controller</td>
+</tr>
+<tr>
+<td>secure</td>
+<td>Switch drops packets without controller</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="openflow-controller">OpenFlow Controller</h3>
+<pre class="highlight"><code class="language-bash"># Use OpenDaylight controller
+ovs-vsctl set-controller br0 tcp:192.168.1.200:6633
+
+# Use ONOS controller
+ovs-vsctl set-controller br0 tcp:192.168.1.201:6653
+
+# Use Open Virtual Network (OVN)
+ovs-vsctl set-controller br0 tcp:192.168.1.202:6642</code></pre>
+<h2 id="advanced-features">Advanced Features</h2>
+<h3 id="group-tables">Group Tables</h3>
+<pre class="highlight"><code class="language-bash"># Create group
+ovs-ofctl add-group br0 \
+    "group_id=1,type=select,bucket=output:2,bucket=output:3"
+
+# Use group in flow
+ovs-ofctl add-flow br0 \
+    "priority=100,actions=group:1"
+
+# Group types: select, all, indirect, fast_failover</code></pre>
+<h3 id="meter-tables">Meter Tables</h3>
+<pre class="highlight"><code class="language-bash"># Create meter
+ovs-ofctl add-meter br0 \
+    "meter=1,kbps,bands=type=drop,rate=1000"
+
+# Use meter in flow
+ovs-ofctl add-flow br0 \
+    "priority=100,actions=meter:1,output:2"</code></pre>
+<h3 id="quality-of-service-qos">Quality of Service (QoS)</h3>
+<pre class="highlight"><code class="language-bash"># Create QoS
+ovs-vsctl set port eth0 qos=@newqos \
+    -- --id=@newqos create qos type=linux-htb \
+    other-config:max-rate=1000000000
+
+# Create queue
+ovs-vsctl set port eth0 qos=@newqos \
+    -- --id=@newqos create qos type=linux-htb \
+    queues:0=@q0 \
+    -- --id=@q0 create queue other-config:max-rate=500000000</code></pre>
+<h3 id="mirroring">Mirroring</h3>
+<pre class="highlight"><code class="language-bash"># Create mirror
+ovs-vsctl -- \
+    --id=@m create mirror name=mymirror select-dst-port=eth0 \
+    -- set bridge br0 mirrors=@m
+
+# Add output port to mirror
+ovs-vsctl set mirror mymirror output-port=eth1</code></pre>
+<h3 id="tunneling">Tunneling</h3>
+<h4 id="gre-tunnel">GRE Tunnel</h4>
+<pre class="highlight"><code class="language-bash"># Create GRE tunnel
+ovs-vsctl add-port br0 gre0 -- \
+    set interface gre0 type=gre options:remote_ip=192.168.1.200
+
+# Create GRE tunnel with key
+ovs-vsctl add-port br0 gre0 -- \
+    set interface gre0 type=gre \
+    options:remote_ip=192.168.1.200 \
+    options:key=100</code></pre>
+<h4 id="vxlan-tunnel">VXLAN Tunnel</h4>
+<pre class="highlight"><code class="language-bash"># Create VXLAN tunnel
+ovs-vsctl add-port br0 vxlan0 -- \
+    set interface vxlan0 type=vxlan \
+    options:remote_ip=192.168.1.200 \
+    options:key=flow
+
+# Create VXLAN with multicast
+ovs-vsctl add-port br0 vxlan0 -- \
+    set interface vxlan0 type=vxlan \
+    options:remote_ip=239.1.1.1 \
+    options:key=100</code></pre>
+<h4 id="geneve-tunnel">Geneve Tunnel</h4>
+<pre class="highlight"><code class="language-bash"># Create Geneve tunnel
+ovs-vsctl add-port br0 geneve0 -- \
+    set interface geneve0 type=geneve \
+    options:remote_ip=192.168.1.200 \
+    options:key=100</code></pre>
+<h2 id="quick-commands">Quick Commands</h2>
+<h3 id="bridge-management">Bridge Management</h3>
+<pre class="highlight"><code class="language-bash"># Create bridge
+ovs-vsctl add-br br0
+
+# Delete bridge
 ovs-vsctl del-br br0
+
+# List bridges
 ovs-vsctl list-br
 
-# Port Management
+# Show bridge
+ovs-vsctl show br0</code></pre>
+<h3 id="port-management">Port Management</h3>
+<pre class="highlight"><code class="language-bash"># Add port
 ovs-vsctl add-port br0 eth0
+
+# Delete port
 ovs-vsctl del-port br0 eth0
+
+# List ports
 ovs-vsctl list-ports br0
 
-# Show Configuration
-ovs-vsctl show
-ovs-ofctl show br0
+# Show port
+ovs-vsctl show</code></pre>
+<h3 id="flow-management">Flow Management</h3>
+<pre class="highlight"><code class="language-bash"># Add flow
+ovs-ofctl add-flow br0 "priority=100,actions=output:2"
 
-# Database Management
-ovs-vsctls show</code></pre>
+# Delete flow
+ovs-ofctl del-flows br0
+
+# Dump flows
+ovs-ofctl dump-flows br0
+
+# Monitor flows
+ovs-ofctl monitor br0</code></pre>
+<h3 id="configuration">Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Show configuration
+ovs-vsctl show
+
+# Show OVSDB
+ovs-vsctl list Open_vSwitch
+
+# Show bridge
+ovs-vsctl list Bridge
+
+# Show port
+ovs-vsctl list Port</code></pre>
 <h2 id="nifty-behaviors">Nifty Behaviors</h2>
-<h3 id="remote-management">Remote Management</h3>
-<p><pre class="highlight"><code class="language-bash">ovs-vsctl set-manager ptcp:127.0.0.1:6640
+<h3 id="remote-management_1">Remote Management</h3>
+<pre class="highlight"><code class="language-bash"># Enable remote management
+ovs-vsctl set-manager ptcp:6640
+
+# Connect with SSL
 ovs-vsctl set-protocol ssl</code></pre>
-<strong>Nifty</strong>: Secure remote OVS management</p>
+<p><strong>Nifty</strong>: Secure remote OVS management</p>
 <h3 id="bond-configuration">Bond Configuration</h3>
-<p><pre class="highlight"><code class="language-bash">ovs-vsctl add-bond bond0 eth0 eth1
-ovs-vsctl set bond bond0 mode=active-backup</code></pre>
-<strong>Nifty</strong>: Network redundancy and load balancing</p>
+<pre class="highlight"><code class="language-bash"># Create LACP bond
+ovs-vsctl add-bond bond0 eth0 eth1 \
+    lacp=active \
+    bond_mode=balance-tcp</code></pre>
+<p><strong>Nifty</strong>: Network redundancy and load balancing</p>
+<h3 id="vxlan-overlay">VXLAN Overlay</h3>
+<pre class="highlight"><code class="language-bash"># Create VXLAN with key=flow
+ovs-vsctl add-port br0 vxlan0 -- \
+    set interface vxlan0 type=vxlan \
+    options:remote_ip=192.168.1.200 \
+    options:key=flow</code></pre>
+<p><strong>Nifty</strong>: Network virtualization with per-flow keys</p>
+<h3 id="flow-learning">Flow Learning</h3>
+<pre class="highlight"><code class="language-bash"># Add learning flow
+ovs-ofctl add-flow br0 \
+    "priority=100,actions=learn(table=1,idle_timeout=300,hard_timeout=1800,eth_src=dl_src,output=in_port),output:1"</code></pre>
+<p><strong>Nifty</strong>: Automatic flow table population</p>
+<h2 id="dpdk-datapath">DPDK Datapath</h2>
+<h3 id="dpdk-setup">DPDK Setup</h3>
+<pre class="highlight"><code class="language-bash"># Create DPDK bridge
+ovs-vsctl add-br br0 -- set bridge br0 datapath_type=netdev
+
+# Add DPDK port
+ovs-vsctl add-port br0 dpdk0 -- \
+    set interface dpdk0 type=dpdk \
+    options:dpdk-devargs=0000:01:00.0</code></pre>
+<h3 id="dpdk-benefits">DPDK Benefits</h3>
+<ul>
+<li>Userspace packet processing</li>
+<li>Zero-copy networking</li>
+<li>High performance (10M+ PPS)</li>
+<li>Low latency (&lt;1ms)</li>
+</ul>
+<h3 id="dpdk-configuration">DPDK Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Set DPDK lcore
+ovs-vsctl set Open_vSwitch . other_config:dpdk-lcore-mask=0x1
+
+# Set DPDK memory
+ovs-vsctl set Open_vSwitch . other_config:dpdk-socket-mem=1024
+
+# Set DPDK PMD
+ovs-vsctl set Open_vSwitch . other_config:pmd-cpu-mask=0x2</code></pre>
+<h2 id="ovn-open-virtual-network">OVN - Open Virtual Network</h2>
+<h3 id="ovn-architecture">OVN Architecture</h3>
+<div class="mermaid">graph TB
+    A[OVN Northbound DB] --&gt; B[OVN Northbound Service]
+    C[OVN Southbound DB] --&gt; D[OVN Southbound Service]
+    E[OVS] --&gt; F[OVN Controller]
+
+    B --&gt; C
+    D --&gt; F
+    F --&gt; G[OVSDB]
+
+    H[Applications] --&gt; B
+    I[Admins] --&gt; B
+
+    style A fill:#c8e6c9
+    style C fill:#e1f5ff
+    style F fill:#ffecb3
+</div>
+<h3 id="ovn-setup">OVN Setup</h3>
+<pre class="highlight"><code class="language-bash"># Install OVN
+apt-get install ovn-central ovn-host ovn-controller
+
+# Initialize OVN
+ovn-nbctl init
+ovn-sbctl init
+
+# Connect OVN to OVS
+ovs-vsctl set Open_vSwitch . \
+    external_ids:ovn-remote=tcp:192.168.1.200:6642 \
+    external_ids:ovn-encap-type=geneve \
+    external_ids:ovn-encap-ip=192.168.1.10</code></pre>
+<h2 id="performance-tuning">Performance Tuning</h2>
+<h3 id="flow-table-optimization">Flow Table Optimization</h3>
+<pre class="highlight"><code class="language-bash"># Set flow table size
+ovs-vsctl set bridge br0 \
+    other-config:n-flow-entries=100000
+
+# Set flow limits
+ovs-vsctl set bridge br0 \
+    other-config:max-idle=300000 \
+    other-config:n-backlog=1000</code></pre>
+<h3 id="datapath-optimization">Datapath Optimization</h3>
+<pre class="highlight"><code class="language-bash"># Use hugepages
+ovs-vsctl set Open_vSwitch . \
+    other_config:dpdk-socket-mem=1024,1024
+
+# Enable batch processing
+ovs-vsctl set bridge br0 \
+    other-config:hwaddr=02:00:00:00:00:01</code></pre>
+<h3 id="memory-optimization">Memory Optimization</h3>
+<pre class="highlight"><code class="language-bash"># Set memory limits
+ovs-vsctl set Open_vSwitch . \
+    other_config:dpdk-alloc-mem=1024
+
+# Set buffer size
+ovs-vsctl set bridge br0 \
+    other-config:max-revalidator=4000</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="flow-issues">Flow Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check flows
+ovs-ofctl dump-flows br0
+
+# Monitor flow additions
+ovs-ofctl monitor br0
+
+# Check packet counters
+ovs-ofctl dump-ports br0</code></pre>
+<h3 id="connectivity-issues">Connectivity Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check bridge status
+ovs-vsctl show
+
+# Check port status
+ovs-vsctl list Port
+
+# Check interface status
+ovs-vsctl list Interface</code></pre>
+<h3 id="controller-issues">Controller Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check controller status
+ovs-vsctl get controller br0 status
+
+# Check fail mode
+ovs-vsctl get fail-mode br0
+
+# Test controller connectivity
+curl http://192.168.1.200:8080</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Use VLANs</strong> for network isolation</li>
+<li><strong>Enable bonding</strong> for network redundancy</li>
+<li><strong>Use flow tables</strong> for traffic control</li>
+<li><strong>Monitor OVS</strong> for performance</li>
+<li><strong>Secure OVSDB</strong> with SSL</li>
+<li><strong>Test failover</strong> scenarios</li>
+<li><strong>Document network topology</strong></li>
+<li><strong>Use tunnels</strong> for overlay networks</li>
+</ol>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Repository: https://github.com/openvswitch/ovs</li>
-<li>Documentation: https://docs.openvswitch.org/</li>
+<li><strong>Repository</strong>: https://github.com/openvswitch/ovs</li>
+<li><strong>Documentation</strong>: https://docs.openvswitch.org/</li>
 </ul>
+<h3 id="key-source-locations">Key Source Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ovs-vswitchd</td>
+<td><code>vswitchd/</code></td>
+<td>Main switch daemon</td>
+</tr>
+<tr>
+<td>ovsdb-server</td>
+<td><code>ovsdb/</code></td>
+<td>Database server</td>
+</tr>
+<tr>
+<td>lib/ofp</td>
+<td><code>lib/ofp*</code></td>
+<td>OpenFlow library</td>
+</tr>
+<tr>
+<td>lib/dpif</td>
+<td><code>lib/dpif*</code></td>
+<td>Datapath interface</td>
+</tr>
+<tr>
+<td>lib/netdev</td>
+<td><code>lib/netdev*</code></td>
+<td>Network device library</td>
+</tr>
+<tr>
+<td>ofproto</td>
+<td><code>ofproto/</code></td>
+<td>OpenFlow protocol</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -734,23 +1456,164 @@ ovs-vsctl set bond bond0 mode=active-backup</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ovs-vswitchd">
+            ovs-vswitchd
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ovsdb-server">
+            ovsdb-server
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#openflow-protocol">
+            OpenFlow Protocol
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
             Key Features
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#standard-linux-bridge-compatibility">
+            Standard Linux Bridge Compatibility
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-based-switching">
+            Flow-Based Switching
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#network-isolation-with-vlans">
+            Network Isolation with VLANs
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#bonding-and-trunking">
+            Bonding and Trunking
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#remote-management">
+            Remote Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#flow-tables">
+            Flow Tables
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-table-structure">
+            Flow Table Structure
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-rules">
+            Flow Rules
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-actions">
+            Flow Actions
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-matching-fields">
+            Flow Matching Fields
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#controllers">
+            Controllers
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#controller-configuration">
+            Controller Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#controller-fail-modes">
+            Controller Fail Modes
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#openflow-controller">
+            OpenFlow Controller
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#advanced-features">
+            Advanced Features
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#group-tables">
+            Group Tables
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#meter-tables">
+            Meter Tables
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#quality-of-service-qos">
+            Quality of Service (QoS)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#mirroring">
+            Mirroring
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#tunneling">
+            Tunneling
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#bridge-management">
+            Bridge Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#port-management">
+            Port Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-management">
+            Flow Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#configuration">
+            Configuration
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
             Nifty Behaviors
         </a>
-<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#remote-management">
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#remote-management_1">
             Remote Management
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#bond-configuration">
             Bond Configuration
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#vxlan-overlay">
+            VXLAN Overlay
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-learning">
+            Flow Learning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#dpdk-datapath">
+            DPDK Datapath
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#dpdk-setup">
+            DPDK Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#dpdk-benefits">
+            DPDK Benefits
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#dpdk-configuration">
+            DPDK Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#ovn-open-virtual-network">
+            OVN - Open Virtual Network
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ovn-architecture">
+            OVN Architecture
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ovn-setup">
+            OVN Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#performance-tuning">
+            Performance Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-table-optimization">
+            Flow Table Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#datapath-optimization">
+            Datapath Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#memory-optimization">
+            Memory Optimization
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#flow-issues">
+            Flow Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#connectivity-issues">
+            Connectivity Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#controller-issues">
+            Controller Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-source-locations">
+            Key Source Locations
         </a>
 </div>
 <div class="h-12"></div>

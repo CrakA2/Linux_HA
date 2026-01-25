@@ -509,65 +509,608 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>Global File System 2 for shared-disk file system in Linux clusters.</p>
+<p>Global File System 2 for shared-disk file system in Linux clusters with distributed lock management and POSIX compliance.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[GFS2 Node 1] --&gt; B[GFS2 Module]
-    A --&gt; C[DLM Lock Manager]
-    A --&gt; D[Shared Block Device]
+    subgraph "Cluster Nodes"
+        A[GFS2 Node 1]
+        B[GFS2 Node 2]
+        C[GFS2 Node 3]
+    end
 
-    E[GFS2 Node 2] --&gt; F[GFS2 Module]
-    E --&gt; G[DLM Lock Manager]
-    E --&gt; D
+    subgraph "Node 1 Components"
+        A1[VFS Layer]
+        A2[GFS2 Module]
+        A3[DLM Lock Manager]
+        A4[Glock Lock Cache]
+    end
+
+    subgraph "Node 2 Components"
+        B1[VFS Layer]
+        B2[GFS2 Module]
+        B3[DLM Lock Manager]
+        B4[Glock Lock Cache]
+    end
+
+    subgraph "Node 3 Components"
+        C1[VFS Layer]
+        C2[GFS2 Module]
+        C3[DLM Lock Manager]
+        C4[Glock Lock Cache]
+    end
 
     subgraph "Shared Storage"
-        H[Physical Storage or DRBD]
+        D[Block Device]
+        E[DRBD/Storage]
     end
 
     subgraph "Lock Synchronization"
-        I[Network Lock Exchange]
-        end
+        F[DLM Network]
+        G[Lock Exchange]
+    end
+
+    subgraph "CLVM"
+        H[Volume Group]
+        I[Logical Volumes]
+    end
+
+    A --&gt; A1
+    A1 --&gt; A2
+    A2 --&gt; A3
+    A2 --&gt; A4
+
+    B --&gt; B1
+    B1 --&gt; B2
+    B2 --&gt; B3
+    B2 --&gt; B4
+
+    C --&gt; C1
+    C1 --&gt; C2
+    C2 --&gt; C3
+    C2 --&gt; C4
+
+    A2 --&gt; D
+    B2 --&gt; D
+    C2 --&gt; D
+
+    D --&gt; E
+
+    A3 --&gt; F
+    B3 --&gt; F
+    C3 --&gt; F
+
+    F --&gt; G
 
     D --&gt; H
-    G --&gt; H
-    D --&gt; I
-    G --&gt; I
+    H --&gt; I
+
+    style A2 fill:#c8e6c9
+    style A3 fill:#ffecb3
+    style A4 fill:#e1f5ff
+    style D fill:#fff3e0
 </div>
+<h2 id="core-components">Core Components</h2>
+<h3 id="gfs2-module">GFS2 Module</h3>
+<p>Kernel module implementing shared filesystem.</p>
+<p><strong>GFS2 Responsibilities</strong>:
+- File system operations (create, read, write, delete)
+- Metadata management (inodes, directories)
+- Journaling
+- Block allocation
+- Lock coordination with DLM</p>
+<p><strong>GFS2 Structures</strong>:
+- <strong>Superblock</strong>: File system metadata
+- <strong>Resource Groups (RGs)</strong>: Block allocation units
+- <strong>Inodes</strong>: File metadata
+- <strong>Directories</strong>: File/directory entries
+- <strong>Journals</strong>: Write-ahead logs</p>
+<h3 id="dlm-distributed-lock-manager">DLM (Distributed Lock Manager)</h3>
+<p>Cluster-wide lock management service.</p>
+<p><strong>DLM Responsibilities</strong>:
+- Coordinate file locks across nodes
+- Manage lock state
+- Handle lock conflicts
+- Support lock modes
+- Lock recovery</p>
+<p><strong>Lock Modes</strong>:
+| Mode | Name | Description |
+|------|------|-------------|
+| NL | Null Lock | No lock |
+| CR | Concurrent Read | Shared read, no intent |
+| PR | Protected Read | Shared read with write intent |
+| PW | Protected Write | Exclusive read/write intent |
+| EX | Exclusive | Exclusive access |</p>
+<p><strong>Lock Conversion</strong>:
+<pre class="highlight"><code>CR -&gt; PR (upgrade)
+PR -&gt; PW (upgrade)
+PW -&gt; EX (upgrade)
+EX -&gt; PW -&gt; PR -&gt; CR (downgrade)</code></pre></p>
+<p><strong>DLM Operation Flow</strong>:</p>
+<div class="mermaid">sequenceDiagram
+    participant N1 as Node 1
+    participant DLM as DLM Service
+    participant N2 as Node 2
+
+    N1-&gt;&gt;DLM: Lock Request (EX)
+    DLM-&gt;&gt;DLM: Check Lock State
+    DLM-&gt;&gt;N2: Lock Grant Request
+    N2-&gt;&gt;DLM: Lock Release
+    DLM-&gt;&gt;N1: Lock Granted
+    N1-&gt;&gt;N1: Access Resource
+    N1-&gt;&gt;DLM: Lock Release
+</div>
+<h3 id="glock-gfs2-lock">Glock (GFS2 Lock)</h3>
+<p>GFS2-specific lock structure for file system operations.</p>
+<p><strong>Glock Types</strong>:
+| Type | Name | Description |
+|------|------|-------------|
+| 1 | Inode | Inode lock |
+| 2 | Rgrp | Resource group lock |
+| 3 | Meta | Metadata lock |
+| 4 | iopen | Inode open lock |
+| 5 | flock | File lock |
+| 6 | plock | Posix lock |
+| 8 | Quota | Quota lock |
+| 9 | Journal | Journal lock |</p>
+<p><strong>Glock State Machine</strong>:</p>
+<div class="mermaid">stateDiagram-v2
+    [*] --&gt; Unlocked
+    Unlocked --&gt; Shared: Shared Lock Request
+    Unlocked --&gt; Deferred: Exclusive Lock Request (blocked)
+    Shared --&gt; Unlocked: Release
+    Shared --&gt; Deferred: Upgrade Request (blocked)
+    Deferred --&gt; Shared: Grant Shared
+    Deferred --&gt; Exclusive: Grant Exclusive
+    Exclusive --&gt; Shared: Downgrade
+    Exclusive --&gt; Unlocked: Release
+</div>
+<p><strong>Glock Cache</strong>:
+- Per-node lock cache
+- Improves performance
+- Reduces network traffic
+- Automatic cache invalidation</p>
+<h3 id="journaling">Journaling</h3>
+<p>GFS2 uses per-node journals for crash recovery.</p>
+<p><strong>Journal Operation</strong>:
+1. Transaction start
+2. Write to journal
+3. Commit to filesystem
+4. Clean journal</p>
+<p><strong>Journal Size Calculation</strong>:
+<pre class="highlight"><code>Journal size = (Max file size / Block size) * Journal entries
+
+Example: 1TB filesystem, 4KB blocks, 1000 entries
+Journal size = (1TB / 4KB) * 1000 = 256GB</code></pre></p>
+<p><strong>Journal Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Create journal during mkfs
+mkfs.gfs2 -p lock_dlm -t mycluster:myfs -j 3 \
+    -J size=1024 /dev/drbd/by-res/data
+
+# Add journal to existing filesystem
+gfs2_jadd -j 1 /mnt/gfs2</code></pre></p>
 <h2 id="key-features">Key Features</h2>
-<ul>
-<li>POSIX-compliant file system</li>
-<li>Distributed lock manager (DLM)</li>
-<li>Cluster-wide volume management (CLVM)</li>
-<li>Journaling for metadata integrity</li>
-<li>Quota support</li>
-</ul>
+<h3 id="posix-compliance">POSIX Compliance</h3>
+<p>GFS2 provides full POSIX file system semantics.</p>
+<p><strong>Supported Operations</strong>:
+- Standard file I/O (open, read, write, close)
+- Directory operations (mkdir, rmdir, readdir)
+- File permissions and ownership
+- Symbolic and hard links
+- File locking (fcntl, flock)
+- Extended attributes
+- ACLs</p>
+<h3 id="distributed-lock-management">Distributed Lock Management</h3>
+<p>Cluster-wide coordination for concurrent access.</p>
+<p><strong>Lock Granularity</strong>:
+- <strong>Glocks</strong>: High-level locks for resources
+- <strong>DLM locks</strong>: Low-level network locks
+- <strong>POSIX locks</strong>: Application-level file locks</p>
+<p><strong>Lock Acquisition</strong>:
+<pre class="highlight"><code class="language-bash"># File lock with flock
+flock file.txt exclusive
+
+# POSIX lock with fcntl
+fcntl(fd, F_SETLK, &amp;lock)</code></pre></p>
+<h3 id="cluster-wide-volume-management-clvm">Cluster-Wide Volume Management (CLVM)</h3>
+<p>LVM extensions for cluster operations.</p>
+<p><strong>CLVM Features</strong>:
+- Distributed volume management
+- Shared volume groups
+- Cluster-wide snapshots
+- Online resizing</p>
+<p><strong>CLVM Components</strong>:
+- <strong>clvmd</strong>: Cluster LVM daemon
+- <strong>lvmlockd</strong>: LVM lock daemon
+- <strong>libvlock</strong>: Lock management library</p>
 <h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># Create filesystem
-mkfs.gfs2 -p lock_dlm -t mycluster \
-    -j 2 /dev/drbd/by-res/resource-data
+<h3 id="file-system-creation">File System Creation</h3>
+<pre class="highlight"><code class="language-bash"># Create GFS2 filesystem
+mkfs.gfs2 -p lock_dlm -t mycluster:myfs -j 3 \
+    /dev/drbd/by-res/data
 
-# Mount GFS2
-mount -t gfs2 -o noatime,nodiratime \
-    /dev/drbd/by-res/resource-data /mnt/gfs2
+# Create with specific journal size
+mkfs.gfs2 -p lock_dlm -t mycluster:myfs -j 3 \
+    -J size=1024 /dev/drbd/by-res/data
 
-# DLM management
+# Create with block size
+mkfs.gfs2 -p lock_dlm -t mycluster:myfs -j 3 \
+    -b 4096 /dev/drbd/by-res/data</code></pre>
+<h3 id="mounting">Mounting</h3>
+<pre class="highlight"><code class="language-bash"># Mount GFS2
+mount -t gfs2 /dev/drbd/by-res/data /mnt/gfs2
+
+# Mount with options
+mount -t gfs2 -o noatime,nodiratime,data=ordered \
+    /dev/drbd/by-res/data /mnt/gfs2
+
+# Add to /etc/fstab
+/dev/drbd/by-res/data /mnt/gfs2 gfs2 \
+    noatime,nodiratime 0 0</code></pre>
+<h3 id="dlm-management">DLM Management</h3>
+<pre class="highlight"><code class="language-bash"># List locks
 dlm_tool ls
-dlm_tool dump</code></pre>
+
+# Dump locks
+dlm_tool dump
+
+# View lock statistics
+dlm_tool ls -v
+
+# Clear stale locks
+dlm_tool dump | grep -i stale</code></pre>
+<h3 id="file-system-management">File System Management</h3>
+<pre class="highlight"><code class="language-bash"># Show file system info
+gfs2_tool sb /dev/drbd/by-res/data all
+
+# Check file system
+gfs2_fsck -y /dev/drbd/by-res/data
+
+# View quota
+gfs2_quota list /mnt/gfs2
+
+# Enable quotas
+gfs2_quota enable /mnt/gfs2</code></pre>
 <h2 id="nifty-behaviors">Nifty Behaviors</h2>
 <h3 id="quota-management">Quota Management</h3>
-<p><pre class="highlight"><code class="language-bash">gfs2_quota enable /mnt/gfs2
-gfs2_quota limit -u &lt;uid&gt; 100G /mnt/gfs2</code></pre>
-<strong>Nifty</strong>: Enforce user quotas on shared filesystem</p>
+<pre class="highlight"><code class="language-bash"># Enable quotas
+gfs2_quota enable /mnt/gfs2
+
+# Set user quota
+gfs2_quota limit -u 1000 100G /mnt/gfs2
+
+# Set group quota
+gfs2_quota limit -g 1000 50G /mnt/gfs2
+
+# Check quota
+gfs2_quota list /mnt/gfs2
+gfs2_quota get -u 1000 /mnt/gfs2</code></pre>
+<p><strong>Nifty</strong>: Enforce user quotas on shared filesystem</p>
 <h3 id="snapshots-with-clvm">Snapshots with CLVM</h3>
-<p><pre class="highlight"><code class="language-bash">lvcreate -L 10G -s -n my_lv_snap mycluster_vg/my_lv
-lvdisplay mycluster_vg</code></pre>
-<strong>Nifty</strong>: Point-in-time snapshots with LVM</p>
+<pre class="highlight"><code class="language-bash"># Create logical volume in cluster
+lvcreate -L 100G -n my_lv mycluster_vg
+
+# Create snapshot
+lvcreate -L 10G -s -n my_lv_snap mycluster_vg/my_lv
+
+# Display volumes
+lvdisplay mycluster_vg
+
+# Remove snapshot
+lvremove mycluster_vg/my_lv_snap</code></pre>
+<p><strong>Nifty</strong>: Point-in-time snapshots with LVM</p>
+<h3 id="journal-tuning">Journal Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Check journal info
+gfs2_tool jindex /mnt/gfs2
+
+# Add journal for new node
+gfs2_jadd -j 1 /mnt/gfs2
+
+# Tune commit interval
+mount -t gfs2 -o commit=30 /dev/drbd/by-res/data /mnt/gfs2</code></pre>
+<p><strong>Nifty</strong>: Dynamic journal expansion for node scaling</p>
+<h3 id="lock-contention-monitoring">Lock Contention Monitoring</h3>
+<pre class="highlight"><code class="language-bash"># Monitor glock stats
+cat /proc/fs/gfs2/cluster_name/glocks
+
+# Monitor lock dumps
+gfs2_tool lockdump /mnt/gfs2
+
+# Monitor DLM activity
+dwatch -v glock /proc/fs/gfs2</code></pre>
+<p><strong>Nifty</strong>: Real-time lock performance analysis</p>
+<h2 id="clvm-integration">CLVM Integration</h2>
+<h3 id="clvm-setup">CLVM Setup</h3>
+<pre class="highlight"><code class="language-bash"># Install CLVM
+apt-get install lvm2-cluster
+
+# Configure cluster
+pvcreate /dev/sdb
+vgcreate -Ay -cy mycluster_vg /dev/sdb
+lvcreate -L 100G -n data_lv mycluster_vg
+
+# Start clvmd
+systemctl enable clvmd
+systemctl start clvmd
+
+# Create GFS2 on CLVM volume
+mkfs.gfs2 -p lock_dlm -t mycluster:myfs -j 3 \
+    /dev/mycluster_vg/data_lv</code></pre>
+<h3 id="clvm-operations">CLVM Operations</h3>
+<pre class="highlight"><code class="language-bash"># Create volume
+lvcreate -L 50G -n my_lv mycluster_vg
+
+# Extend volume
+lvextend -L +20G mycluster_vg/my_lv
+resize_gfs2 /dev/mycluster_vg/my_lv
+
+# Reduce volume
+lvreduce -L -10G mycluster_vg/my_lv
+resize_gfs2 /dev/mycluster_vg/my_lv
+
+# Create snapshot
+lvcreate -L 5G -s -n snap_lv mycluster_vg/my_lv
+
+# Merge snapshot
+lvconvert --merge mycluster_vg/snap_lv</code></pre>
+<h2 id="performance-tuning">Performance Tuning</h2>
+<h3 id="mount-options">Mount Options</h3>
+<pre class="highlight"><code class="language-bash"># Optimized for performance
+mount -t gfs2 -o noatime,nodiratime,data=writeback \
+    /dev/drbd/by-res/data /mnt/gfs2
+
+# Optimized for safety
+mount -t gfs2 -o data=ordered,barrier=1 \
+    /dev/drbd/by-res/data /mnt/gfs2
+
+# Reduce lock contention
+mount -t gfs2 -o localflocks \
+    /dev/drbd/by-res/data /mnt/gfs2</code></pre>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>noatime</td>
+<td>Don't update access time</td>
+</tr>
+<tr>
+<td>nodiratime</td>
+<td>Don't update directory access time</td>
+</tr>
+<tr>
+<td>data=ordered</td>
+<td>Metadata before data (safe)</td>
+</tr>
+<tr>
+<td>data=writeback</td>
+<td>Data before metadata (fast)</td>
+</tr>
+<tr>
+<td>barrier</td>
+<td>Enable write barriers (safe)</td>
+</tr>
+<tr>
+<td>localflocks</td>
+<td>Use local lockd instead of DLM</td>
+</tr>
+<tr>
+<td>quota</td>
+<td>Enable quotas</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="system-tuning">System Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Increase journal commit interval
+sysctl -w fs.gfs2.logd_secs=30
+
+# Increase lock cache size
+sysctl -w fs.gfs2.quota_scale=100
+
+# Tune DLM
+sysctl -w fs.dlm.tcp_port_size=4096</code></pre>
+<h3 id="file-system-tuning">File System Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Tune GFS2 parameters
+gfs2_tool settune /mnt/gfs2 logd_secs 30
+gfs2_tool settune /mnt/gfs2 quota_scale 100
+gfs2_tool settune /mnt/gfs2 new_files_directio 1
+
+# Tune inode cache
+gfs2_tool settune /mnt/gfs2 greedy_max 2000</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="stale-locks">Stale Locks</h3>
+<pre class="highlight"><code class="language-bash"># Check for stale locks
+dlm_tool dump | grep -i stale
+
+# Clear stale locks
+dlm_tool unlock &lt;resource&gt;
+
+# Restart DLM if needed
+systemctl restart dlm
+systemctl restart clvmd</code></pre>
+<h3 id="mount-issues">Mount Issues</h3>
+<pre class="highlight"><code class="language-bash"># Check DLM status
+systemctl status dlm
+
+# Check cluster quorum
+corosync-quorumtool -s
+
+# Check fence status
+pcs status stonith
+
+# Remount filesystem
+umount /mnt/gfs2
+mount -t gfs2 /dev/drbd/by-res/data /mnt/gfs2</code></pre>
+<h3 id="performance-issues">Performance Issues</h3>
+<pre class="highlight"><code class="language-bash"># Monitor lock contention
+cat /proc/fs/gfs2/cluster_name/glocks
+
+# Monitor DLM stats
+dwatch -v dlm /proc/fs/dlm
+
+# Check journal size
+gfs2_tool jindex /mnt/gfs2
+
+# Tune mount options
+mount -o remount,noatime,nodiratime /mnt/gfs2</code></pre>
+<h3 id="file-system-corruption">File System Corruption</h3>
+<pre class="highlight"><code class="language-bash"># Unmount filesystem
+umount /mnt/gfs2
+
+# Run fsck
+gfs2_fsck -y /dev/drbd/by-res/data
+
+# Check superblock
+gfs2_tool sb /dev/drbd/by-res/data all
+
+# Rebuild journals if needed
+gfs2_jadd -j 3 /dev/drbd/by-res/data</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Use separate journals</strong> for each node</li>
+<li><strong>Monitor lock contention</strong> regularly</li>
+<li><strong>Use CLVM</strong> for volume management</li>
+<li><strong>Set appropriate mount options</strong> for workload</li>
+<li><strong>Enable quotas</strong> for user management</li>
+<li><strong>Test failover scenarios</strong></li>
+<li><strong>Monitor DLM performance</strong></li>
+<li><strong>Use snapshots</strong> for backups</li>
+<li><strong>Keep journal sizes adequate</strong></li>
+<li><strong>Document cluster configuration</strong></li>
+</ol>
+<h2 id="use-cases">Use Cases</h2>
+<h3 id="shared-web-content">Shared Web Content</h3>
+<pre class="highlight"><code class="language-bash"># Mount shared web root
+mount -t gfs2 /dev/drbd/by-res/webroot /var/www
+
+# Configure web servers on all nodes
+# All nodes can read/write same files
+# Automatic lock management</code></pre>
+<h3 id="shared-application-data">Shared Application Data</h3>
+<pre class="highlight"><code class="language-bash"># Mount application data
+mount -t gfs2 /dev/drbd/by-res/appdata /opt/app/data
+
+# Application runs on multiple nodes
+# Concurrent access to shared data
+# POSIX semantics guaranteed</code></pre>
+<h3 id="database-clustering">Database Clustering</h3>
+<pre class="highlight"><code class="language-bash"># Mount database data
+mount -t gfs2 -o data=writeback /dev/drbd/by-res/dbdata /var/lib/mysql
+
+# MySQL cluster with shared storage
+# Note: Use with caution, consider Galera for MySQL</code></pre>
+<h2 id="comparison-with-other-file-systems">Comparison with Other File Systems</h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>GFS2</th>
+<th>OCFS2</th>
+<th>NFS</th>
+<th>CephFS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POSIX</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Block Device</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Direct Access</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Cluster Size</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Large</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>Scalability</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>High</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Complexity</td>
+<td>High</td>
+<td>Medium</td>
+<td>Low</td>
+<td>High</td>
+</tr>
+</tbody>
+</table></div>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Location in Linux kernel: <code>fs/gfs2/</code></li>
-<li>Repository: https://github.com/torvalds/linux/tree/master/fs/gfs2</li>
-<li>Documentation: /usr/share/doc/gfs2-utils/</li>
+<li><strong>Location in Linux kernel</strong>: <code>fs/gfs2/</code></li>
+<li><strong>Repository</strong>: https://github.com/torvalds/linux/tree/master/fs/gfs2</li>
+<li><strong>Documentation</strong>: <code>/usr/share/doc/gfs2-utils/</code></li>
 </ul>
+<h3 id="key-source-locations">Key Source Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Main module</td>
+<td><code>fs/gfs2/main.c</code></td>
+<td>GFS2 initialization</td>
+</tr>
+<tr>
+<td>Superblock</td>
+<td><code>fs/gfs2/super.c</code></td>
+<td>Superblock operations</td>
+</tr>
+<tr>
+<td>Inode</td>
+<td><code>fs/gfs2/inode.c</code></td>
+<td>Inode operations</td>
+</tr>
+<tr>
+<td>Dirthy</td>
+<td><code>fs/gfs2/dir.c</code></td>
+<td>Directory operations</td>
+</tr>
+<tr>
+<td>Glock</td>
+<td><code>fs/gfs2/glock.c</code></td>
+<td>Lock management</td>
+</tr>
+<tr>
+<td>Rgrp</td>
+<td><code>fs/gfs2/rgrp.c</code></td>
+<td>Resource group</td>
+</tr>
+<tr>
+<td>Log</td>
+<td><code>fs/gfs2/log.c</code></td>
+<td>Journaling</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -730,11 +1273,47 @@ lvdisplay mycluster_vg</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#gfs2-module">
+            GFS2 Module
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#dlm-distributed-lock-manager">
+            DLM (Distributed Lock Manager)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#glock-gfs2-lock">
+            Glock (GFS2 Lock)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#journaling">
+            Journaling
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
             Key Features
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#posix-compliance">
+            POSIX Compliance
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#distributed-lock-management">
+            Distributed Lock Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cluster-wide-volume-management-clvm">
+            Cluster-Wide Volume Management (CLVM)
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#file-system-creation">
+            File System Creation
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#mounting">
+            Mounting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#dlm-management">
+            DLM Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#file-system-management">
+            File System Management
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
             Nifty Behaviors
@@ -745,8 +1324,71 @@ lvdisplay mycluster_vg</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#snapshots-with-clvm">
             Snapshots with CLVM
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#journal-tuning">
+            Journal Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#lock-contention-monitoring">
+            Lock Contention Monitoring
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#clvm-integration">
+            CLVM Integration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#clvm-setup">
+            CLVM Setup
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#clvm-operations">
+            CLVM Operations
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#performance-tuning">
+            Performance Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#mount-options">
+            Mount Options
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#system-tuning">
+            System Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#file-system-tuning">
+            File System Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#stale-locks">
+            Stale Locks
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#mount-issues">
+            Mount Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#performance-issues">
+            Performance Issues
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#file-system-corruption">
+            File System Corruption
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#use-cases">
+            Use Cases
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#shared-web-content">
+            Shared Web Content
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#shared-application-data">
+            Shared Application Data
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#database-clustering">
+            Database Clustering
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#comparison-with-other-file-systems">
+            Comparison with Other File Systems
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-source-locations">
+            Key Source Locations
         </a>
 </div>
 <div class="h-12"></div>

@@ -509,56 +509,597 @@
 </div>
 </div>
 <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-<p>Distributed storage system providing object, block, and file storage in unified platform.</p>
+<p>Distributed storage system providing object, block, and file storage in unified platform with self-healing and self-managing capabilities.</p>
 <h2 id="architecture">Architecture</h2>
 <div class="mermaid">graph TB
-    A[Clients] --&gt; B[LIBRADOS/LIBRBD/CEPHFS/RADOSGW]
-    B --&gt; C[MON Cluster]
-    B --&gt; D[OSD Daemons]
-    B --&gt; E[MGR Daemons]
-    B --&gt; F[MDS Daemons]
-    D --&gt; G[BlueStore/FileStore]
-    G --&gt; H[Storage Hardware]
-</div>
-<h2 id="key-features">Key Features</h2>
-<ul>
-<li>Object storage with S3/Swift API</li>
-<li>Block device (RBD) with kernel support</li>
-<li>POSIX-compliant file system (CephFS)</li>
-<li>Erasure coding for data protection</li>
-<li>Automatic data rebalancing</li>
-</ul>
-<h2 id="quick-commands">Quick Commands</h2>
-<pre class="highlight"><code class="language-bash"># Cluster status
-ceph -s
-ceph health
+    subgraph "Clients"
+        A[LIBRBD]
+        B[LIBRADOS]
+        C[CEPHFS Client]
+        D[RGW/S3/Swift]
+    end
 
-# Storage management
-ceph osd pool create rbd 64
-rbd create rbd/image1 --size 100G
+    subgraph "Monitor Layer"
+        E[MON 1]
+        F[MON 2]
+        G[MON 3]
+    end
+
+    subgraph "Manager Layer"
+        H[MGR 1]
+        I[MGR 2]
+    end
+
+    subgraph "OSD Layer"
+        J[OSD 1]
+        K[OSD 2]
+        L[OSD 3]
+        M[OSD N]
+
+        N[BlueStore]
+        O[FileStore]
+        P[RocksDB]
+        Q[WAL]
+    end
+
+    subgraph "Storage"
+        R[HDD/SSD]
+        S[NVMe]
+        T[RAM]
+    end
+
+    subgraph "Network"
+        U[Public Network]
+        V[Cluster Network]
+    end
+
+    A --&gt; B
+    C --&gt; B
+    D --&gt; B
+
+    B --&gt; E
+    B --&gt; F
+    B --&gt; G
+
+    B --&gt; J
+    B --&gt; K
+    B --&gt; L
+    B --&gt; M
+
+    H --&gt; J
+    I --&gt; K
+
+    J --&gt; N
+    K --&gt; O
+    L --&gt; P
+    M --&gt; Q
+
+    N --&gt; R
+    O --&gt; R
+    P --&gt; S
+    Q --&gt; S
+
+    H --&gt; T
+
+    J --&gt; U
+    K --&gt; U
+
+    J --&gt; V
+    K --&gt; V
+
+    style E fill:#c8e6c9
+    style H fill:#ffecb3
+    style J fill:#e1f5ff
+    style N fill:#fff3e0
+</div>
+<h2 id="core-components">Core Components</h2>
+<h3 id="mon-monitor">MON (Monitor)</h3>
+<p>Cluster management daemon maintaining cluster state and map information.</p>
+<p><strong>MON Responsibilities</strong>:
+- Maintain cluster map (OSD map, MON map, MDS map, MGR map)
+- Monitor OSD health
+- Coordinate OSD failover/recovery
+- Maintain CRUSH map
+- Auth and authentication
+- Quorum management</p>
+<p><strong>MON Map Structure</strong>:
+<pre class="highlight"><code class="language-bash">ceph mon dump
+# Output:
+# epoch 1
+# fsid 12345678-1234-1234-1234-123456789abc
+# last_changed 2026-01-26 00:00:00.000000
+# created 2026-01-26 00:00:00.000000
+# min_mon_release 17 (quincy)
+# 0: [v2:192.168.1.10:3300/0,v1:192.168.1.10:6789/0] mon.node1
+# 1: [v2:192.168.1.11:3300/0,v1:192.168.1.11:6789/0] mon.node2
+# 2: [v2:192.168.1.12:3300/0,v1:192.168.1.12:6789/0] mon.node3</code></pre></p>
+<p><strong>MON Quorum</strong>:
+- Odd number of MONs recommended
+- Minimum 3 MONs for production
+- Majority required for quorum
+- Split-brain prevention</p>
+<h3 id="mgr-manager">MGR (Manager)</h3>
+<p>Daemon for monitoring and management, extending Ceph with plugins.</p>
+<p><strong>MGR Plugins</strong>:
+| Plugin | Description |
+|--------|-------------|
+| dashboard | Web UI for monitoring |
+| prometheus | Prometheus metrics exporter |
+| zabbix | Zabbix integration |
+| influx | InfluxDB metrics |
+| rook | Kubernetes integration |
+| orchestrator | Cluster orchestration |
+| pg_autoscaler | PG auto-scaling |
+| balancer | Data balancer |</p>
+<p><strong>MGR Status</strong>:
+<pre class="highlight"><code class="language-bash">ceph mgr stat
+# Output:
+# epoch 5
+# active_since 2026-01-26 00:00:00.000000
+# active_name mgr.node1
+# available: node1, node2, node3</code></pre></p>
+<h3 id="osd-object-storage-daemon">OSD (Object Storage Daemon)</h3>
+<p>Core storage daemon storing data objects on local storage.</p>
+<p><strong>OSD Responsibilities</strong>:
+- Store object data
+- Replicate data
+- Recover from failures
+- Rebalance data
+- Perform scrubbing
+- Report to MON</p>
+<p><strong>OSD Storage Engines</strong>:</p>
+<h4 id="bluestore-default">BlueStore (Default)</h4>
+<div class="mermaid">graph TB
+    A[Object Write] --&gt; B[RocksDB DB]
+    A --&gt; C[WAL]
+    A --&gt; D[BlueStore]
+
+    B --&gt; E[Metadata]
+    C --&gt; F[Journal]
+    D --&gt; G[Block Device]
+
+    E --&gt; H[Fast Storage]
+    F --&gt; H
+    G --&gt; I[Main Storage]
+
+    style B fill:#c8e6c9
+    style C fill:#ffecb3
+    style D fill:#e1f5ff
+</div>
+<p><strong>BlueStore Components</strong>:
+- <strong>Block Device</strong>: Main data storage
+- <strong>DB Device</strong>: RocksDB metadata (SSD/NVMe)
+- <strong>WAL Device</strong>: Write-ahead log (NVMe)</p>
+<p><strong>BlueStore Benefits</strong>:
+- Better performance than FileStore
+- Direct object storage
+- Efficient compression
+- Better recovery</p>
+<h4 id="filestore-legacy">FileStore (Legacy)</h4>
+<p><strong>FileStore Components</strong>:
+- <strong>Filesystem</strong>: XFS, Btrfs, ext4
+- <strong>Journal</strong>: Write-ahead log
+- <strong>Data Directory</strong>: Object data</p>
+<p><strong>FileStore Configuration</strong>:
+<pre class="highlight"><code class="language-bash"># Use XFS filesystem
+mkfs.xfs -f /dev/sdb
+mount /dev/sdb /var/lib/ceph/osd/ceph-0
+
+# Use Btrfs with compression
+mkfs.btrfs /dev/sdc
+mount -o compress=lzo /dev/sdc /var/lib/ceph/osd/ceph-1</code></pre></p>
+<h3 id="crush-controlled-replication-under-scalable-hashing">CRUSH (Controlled Replication Under Scalable Hashing)</h3>
+<p>Algorithm for data distribution and replication.</p>
+<p><strong>CRUSH Map Structure</strong>:
+<pre class="highlight"><code class="language-bash">crushtool -c /etc/ceph/crushmap -o crushmap.txt
+cat crushmap.txt</code></pre></p>
+<p><strong>CRUSH Hierarchy</strong>:
+<pre class="highlight"><code>root default
+    host node1
+        osd.0
+        osd.1
+    host node2
+        osd.2
+        osd.3
+    host node3
+        osd.4
+        osd.5</code></pre></p>
+<p><strong>CRUSH Rules</strong>:
+| Rule | Description |
+|------|-------------|
+| replicated_rule | Standard replication |
+| erasure-code | Erasure coding |
+| default_rule | Default replication |</p>
+<h3 id="pg-placement-group">PG (Placement Group)</h3>
+<p>Logical grouping of objects for data management.</p>
+<p><strong>PG Calculation</strong>:
+<pre class="highlight"><code>PG = (OSDs * 100) / (Pool size * Replica count)
+
+Example: 10 OSDs, 3 replicas
+PG = (10 * 100) / (3) = 333</code></pre></p>
+<p><strong>PG States</strong>:
+| State | Description |
+|-------|-------------|
+| creating | PG being created |
+| active | PG ready for I/O |
+| clean | PG fully replicated |
+| degraded | Missing replicas |
+| peering | Synchronizing replicas |
+| recovering | Recovering objects |
+| incomplete | Missing required replicas |</p>
+<h2 id="key-features">Key Features</h2>
+<h3 id="object-storage-rgw">Object Storage (RGW)</h3>
+<p><strong>RADOS Gateway</strong> provides S3 and Swift compatible object storage.</p>
+<p><strong>RGW Setup</strong>:
+<pre class="highlight"><code class="language-bash"># Install RGW
+apt-get install radosgw
+
+# Create RGW user
+radosgw-admin user create \
+    --uid=testuser \
+    --display-name="Test User"
+
+# Access keys
+radosgw-admin user info --uid=testuser</code></pre></p>
+<p><strong>S3 Access</strong>:
+<pre class="highlight"><code class="language-bash"># AWS CLI
+aws --endpoint-url http://radosgw.example.com s3 ls
+
+# Upload object
+aws --endpoint-url http://radosgw.example.com \
+    s3 cp file.txt s3://bucket/file.txt
+
+# Download object
+aws --endpoint-url http://radosgw.example.com \
+    s3 cp s3://bucket/file.txt file.txt</code></pre></p>
+<h3 id="block-storage-rbd">Block Storage (RBD)</h3>
+<p><strong>RBD</strong> provides block devices via kernel module or QEMU.</p>
+<p><strong>RBD Setup</strong>:
+<pre class="highlight"><code class="language-bash"># Create pool
+ceph osd pool create rbd 64 64
+
+# Create RBD image
+rbd create rbd/image1 --size 100G --image-format 2
+
+# Map RBD image
 rbd map rbd/image1
 
-# CephFS
-ceph fs new myfs metadata data
-mount -t ceph &lt;mon-ip&gt;:6789:/ /mnt/cephfs</code></pre>
+# Format filesystem
+mkfs.xfs /dev/rbd0
+
+# Mount filesystem
+mount /dev/rbd0 /mnt/rbd</code></pre></p>
+<p><strong>RBD Features</strong>:
+| Feature | Description |
+|---------|-------------|
+| layering | Image snapshots |
+| striping | Object striping |
+| exclusive-lock | Exclusive lock |
+| object-map | Object map |
+| deep-flatten | Flatten snapshots |
+| fast-diff | Fast diff calculation |</p>
+<p><strong>RBD with QEMU</strong>:
+<pre class="highlight"><code class="language-bash"># Create RBD image for VM
+rbd create vm1-disk --size 50G --image-format 2
+
+# QEMU command
+qemu-system-x86_64 -drive \
+    file=rbd:rbd/vm1-disk:id=admin,keyring=/etc/ceph/ceph.client.admin.keyring</code></pre></p>
+<h3 id="file-storage-cephfs">File Storage (CephFS)</h3>
+<p><strong>CephFS</strong> provides POSIX-compliant file system.</p>
+<p><strong>CephFS Setup</strong>:
+<pre class="highlight"><code class="language-bash"># Create metadata pool
+ceph osd pool create cephfs_metadata 64 64
+
+# Create data pool
+ceph osd pool create cephfs_data 128 128
+
+# Create filesystem
+ceph fs new myfs cephfs_metadata cephfs_data
+
+# Mount CephFS
+mkdir /mnt/cephfs
+mount -t ceph 192.168.1.10:6789:/ /mnt/cephfs</code></pre></p>
+<p><strong>CephFS Features</strong>:
+- POSIX semantics
+- Multiple metadata servers (MDS)
+- Snapshots
+- Quotas
+- ACL support</p>
+<h2 id="quick-commands">Quick Commands</h2>
+<h3 id="cluster-status">Cluster Status</h3>
+<pre class="highlight"><code class="language-bash"># Overall status
+ceph -s
+
+# Health detail
+ceph health detail
+
+# OSD status
+ceph osd status
+
+# OSD tree
+ceph osd tree
+
+# PG status
+ceph pg stat</code></pre>
+<h3 id="pool-management">Pool Management</h3>
+<pre class="highlight"><code class="language-bash"># List pools
+ceph osd lspools
+
+# Create pool
+ceph osd pool create mypool 64 64
+
+# Delete pool
+ceph osd pool delete mypool mypool --yes-i-really-really-mean-it
+
+# Pool stats
+ceph osd pool stats</code></pre>
+<h3 id="rbd-management">RBD Management</h3>
+<pre class="highlight"><code class="language-bash"># List images
+rbd ls rbd
+
+# Create image
+rbd create rbd/image1 --size 100G
+
+# Map image
+rbd map rbd/image1
+
+# Unmap image
+rbd unmap /dev/rbd0
+
+# Image info
+rbd info rbd/image1</code></pre>
 <h2 id="nifty-behaviors">Nifty Behaviors</h2>
 <h3 id="bluestore-configuration">BlueStore Configuration</h3>
-<p><pre class="highlight"><code class="language-bash"># Enable BlueStore
+<pre class="highlight"><code class="language-bash"># Enable BlueStore
 ceph config set osd osd_objectstore bluestore
 
 # Tune BlueStore
-ceph config set osd bluestore_max_blob_size 1M</code></pre>
-<strong>Nifty</strong>: Optimized storage engine for better performance</p>
+ceph config set osd bluestore_max_blob_size 1M
+
+# Set DB device
+ceph config set osd bluestore_block_db_path /dev/nvme0n1p1
+
+# Set WAL device
+ceph config set osd bluestore_block_wal_path /dev/nvme0n1p2</code></pre>
+<p><strong>Nifty</strong>: Optimized storage engine for better performance</p>
 <h3 id="cache-tiering">Cache Tiering</h3>
-<p><pre class="highlight"><code class="language-bash">ceph osd tier add base-pool cache-pool
+<pre class="highlight"><code class="language-bash"># Create cache pool
+ceph osd pool create cache-pool 32 32
+ceph osd pool application enable cache-pool rbd
+
+# Create base pool
+ceph osd pool create base-pool 128 128
+ceph osd pool application enable base-pool rbd
+
+# Add cache tier
+ceph osd tier add base-pool cache-pool
+
+# Set cache mode
 ceph osd tier cache-mode cache-pool writeback
-ceph osd pool set cache-pool cache_target_dirty_ratio 0.4</code></pre>
-<strong>Nifty</strong>: Improve read performance with caching, ideally 4gb per drive</p>
+
+# Set cache target ratio
+ceph osd pool set cache-pool cache_target_dirty_ratio 0.4
+
+# Enable cache
+ceph osd tier set-overlay base-pool cache-pool</code></pre>
+<p><strong>Nifty</strong>: Improve read performance with caching, ideally 4gb per drive</p>
+<h3 id="erasure-coding">Erasure Coding</h3>
+<pre class="highlight"><code class="language-bash"># Create erasure coded pool
+ceph osd pool create ec-pool 128 128 \
+    erasure \
+    k=4 m=2 \
+    plugin=jerasure \
+    technique=reed_sol_van
+
+# Create erasure coded profile
+ceph osd erasure-code-profile set ec-profile \
+    k=4 m=2 \
+    plugin=jerasure \
+    technique=reed_sol_van
+
+# Create pool with profile
+ceph osd pool create ec-pool 128 128 erasure \
+    profile=ec-profile</code></pre>
+<p><strong>Nifty</strong>: Better storage efficiency than replication</p>
+<h3 id="rbd-mirroring">RBD Mirroring</h3>
+<pre class="highlight"><code class="language-bash"># Enable RBD mirroring
+rbd mirror pool enable rbd pool
+
+# Create bootstrap token
+rbd mirror pool bootstrap create rbd &gt; token
+
+# Import bootstrap token
+rbd mirror pool bootstrap import rbd token
+
+# Enable image mirroring
+rbd mirror image enable rbd/image1</code></pre>
+<p><strong>Nifty</strong>: Disaster recovery with remote replication</p>
+<h2 id="production-configuration">Production Configuration</h2>
+<h3 id="crush-tuning">CRUSH Tuning</h3>
+<pre class="highlight"><code class="language-bash"># View CRUSH map
+crushtool -d /etc/ceph/crushmap.txt
+
+# Edit CRUSH map
+vim /etc/ceph/crushmap.txt
+
+# Compile CRUSH map
+crushtool -c /etc/ceph/crushmap.txt -o /etc/ceph/crushmap
+
+# Set CRUSH map
+ceph osd setcrushmap -i /etc/ceph/crushmap</code></pre>
+<p><strong>Custom CRUSH Rules</strong>:
+<pre class="highlight"><code class="language-bash"># Create root for failure domain
+crushtool --add-root ssd --default
+
+# Add host to root
+crushtool --add-bucket node1 host
+
+# Add OSD to host
+crushtool --add-item osd.0 --weight 1.0
+
+# Create rule
+crushtool --add-rule ssd_rule ssd \
+    chooseleaf firstn 0 type host</code></pre></p>
+<h3 id="osd-configuration">OSD Configuration</h3>
+<pre class="highlight"><code class="language-bash"># Set OSD max backfill
+ceph config set osd osd_max_backfills 1
+
+# Set OSD recovery sleep
+ceph config set osd osd_recovery_sleep 0.1
+
+# Set OSD max scrub
+ceph config set osd osd_max_scrubs 1
+
+# Set OSD client target
+ceph config set osd osd_client_target_max_inflight_ops 128
+
+# Set OSD heartbeat interval
+ceph config set osd osd_heartbeat_interval 5</code></pre>
+<h3 id="performance-tuning">Performance Tuning</h3>
+<pre class="highlight"><code class="language-bash"># Enable compression
+ceph config set osd osd_compression_algorithm zstd
+
+# Set compression level
+ceph config set osd osd_compression_level 3
+
+# Enable RBD cache
+rbd config global set rbd_cache true
+
+# Set RBD cache size
+rbd config global set rbd_cache_size 335544320
+
+# Enable RBD writeback
+rbd config global set rbd_cache_writethrough_until_flush false</code></pre>
+<h2 id="monitoring">Monitoring</h2>
+<h3 id="ceph-dashboard">Ceph Dashboard</h3>
+<pre class="highlight"><code class="language-bash"># Enable dashboard
+ceph mgr module enable dashboard
+
+# Create admin user
+ceph dashboard ac-user-create admin admin administrator
+
+# Set SSL
+ceph dashboard set-ssl-certificate -i dashboard.crt
+ceph dashboard set-ssl-private-key -i dashboard.key
+
+# Access dashboard
+# https://192.168.1.10:8443</code></pre>
+<h3 id="prometheus-integration">Prometheus Integration</h3>
+<pre class="highlight"><code class="language-bash"># Enable Prometheus exporter
+ceph mgr module enable prometheus
+
+# Access metrics
+curl http://192.168.1.10:9283/metrics</code></pre>
+<h3 id="alerts">Alerts</h3>
+<pre class="highlight"><code class="language-bash"># Set alert rules
+ceph config set mgr mgr_alerts \
+    "osd_down:3,pg_degraded:10,osd_full:0.9"
+
+# View alerts
+ceph health detail</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="osd-down">OSD Down</h3>
+<pre class="highlight"><code class="language-bash"># Check OSD status
+ceph osd tree
+
+# Bring OSD up
+ceph osd in osd.0
+ceph osd up osd.0
+
+# Check OSD logs
+ceph -w
+
+# Test OSD
+ceph tell osd.0 bench 4096</code></pre>
+<h3 id="pg-degraded">PG Degraded</h3>
+<pre class="highlight"><code class="language-bash"># Check PG status
+ceph pg stat
+
+# Show degraded PGs
+ceph pg ls degraded
+
+# Force recovery
+ceph pg force_recovery pgid
+
+# Set recovery speed
+ceph osd set-backfillfull ratio 0.75</code></pre>
+<h3 id="osd-full">OSD Full</h3>
+<pre class="highlight"><code class="language-bash"># Check OSD usage
+ceph osd df
+
+# Set cluster full ratio
+ceph osd set-full-ratio 0.85
+ceph osd set-backfillfull-ratio 0.8
+ceph osd set-nearfull-ratio 0.75
+
+# Mark OSD as out
+ceph osd out osd.0</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Use BlueStore</strong> for production</li>
+<li><strong>Separate networks</strong> for public and cluster traffic</li>
+<li><strong>Use SSD for OSD DB/WAL</strong></li>
+<li><strong>Monitor cluster health</strong> continuously</li>
+<li><strong>Set appropriate PG count</strong> for pools</li>
+<li><strong>Enable compression</strong> for cold data</li>
+<li><strong>Use erasure coding</strong> for large datasets</li>
+<li><strong>Test recovery scenarios</strong> regularly</li>
+<li><strong>Document cluster configuration</strong></li>
+<li><strong>Monitor capacity</strong> and plan expansions</li>
+</ol>
 <h2 id="source-code">Source Code</h2>
 <ul>
-<li>Repository: https://github.com/ceph/ceph</li>
-<li>Documentation: https://docs.ceph.com/</li>
+<li><strong>Repository</strong>: https://github.com/ceph/ceph</li>
+<li><strong>Documentation</strong>: https://docs.ceph.com/</li>
 </ul>
+<h3 id="key-source-locations">Key Source Locations</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MON</td>
+<td><code>src/mon/</code></td>
+<td>Monitor daemon</td>
+</tr>
+<tr>
+<td>MGR</td>
+<td><code>src/mgr/</code></td>
+<td>Manager daemon</td>
+</tr>
+<tr>
+<td>OSD</td>
+<td><code>src/osd/</code></td>
+<td>OSD daemon</td>
+</tr>
+<tr>
+<td>BlueStore</td>
+<td><code>src/osd/BlueStore*</code></td>
+<td>BlueStore engine</td>
+</tr>
+<tr>
+<td>CRUSH</td>
+<td><code>src/crush/</code></td>
+<td>CRUSH algorithm</td>
+</tr>
+<tr>
+<td>RBD</td>
+<td><code>src/rbd/</code></td>
+<td>RBD client</td>
+</tr>
+<tr>
+<td>CephFS</td>
+<td><code>src/mds/</code></td>
+<td>Metadata server</td>
+</tr>
+</tbody>
+</table></div>
 </div>
 </article>
 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -721,11 +1262,47 @@ ceph osd pool set cache-pool cache_target_dirty_ratio 0.4</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#architecture">
             Architecture
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#core-components">
+            Core Components
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#mon-monitor">
+            MON (Monitor)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#mgr-manager">
+            MGR (Manager)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#osd-object-storage-daemon">
+            OSD (Object Storage Daemon)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#crush-controlled-replication-under-scalable-hashing">
+            CRUSH (Controlled Replication Under Scalable Hashing)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#pg-placement-group">
+            PG (Placement Group)
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#key-features">
             Key Features
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#object-storage-rgw">
+            Object Storage (RGW)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#block-storage-rbd">
+            Block Storage (RBD)
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#file-storage-cephfs">
+            File Storage (CephFS)
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#quick-commands">
             Quick Commands
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cluster-status">
+            Cluster Status
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#pool-management">
+            Pool Management
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#rbd-management">
+            RBD Management
         </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#nifty-behaviors">
             Nifty Behaviors
@@ -736,8 +1313,56 @@ ceph osd pool set cache-pool cache_target_dirty_ratio 0.4</code></pre>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#cache-tiering">
             Cache Tiering
         </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#erasure-coding">
+            Erasure Coding
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#rbd-mirroring">
+            RBD Mirroring
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#production-configuration">
+            Production Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#crush-tuning">
+            CRUSH Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#osd-configuration">
+            OSD Configuration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#performance-tuning">
+            Performance Tuning
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#monitoring">
+            Monitoring
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#ceph-dashboard">
+            Ceph Dashboard
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#prometheus-integration">
+            Prometheus Integration
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#alerts">
+            Alerts
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#troubleshooting">
+            Troubleshooting
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#osd-down">
+            OSD Down
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#pg-degraded">
+            PG Degraded
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#osd-full">
+            OSD Full
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#best-practices">
+            Best Practices
+        </a>
 <a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="2" href="#source-code">
             Source Code
+        </a>
+<a class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6" data-active="false" data-depth="3" href="#key-source-locations">
+            Key Source Locations
         </a>
 </div>
 <div class="h-12"></div>
