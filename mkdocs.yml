@@ -1,13 +1,14 @@
 site_name: Linux HA and Virtualization
 site_description: Comprehensive course materials for Linux High Availability (HA) clustering and virtualization technologies
 site_author: Linux HA Docs
+site_url: https://craka2.github.io/Linux_HA/
 repo_url: https://github.com/CrakA2/Linux_HA
 site_dir: site
 use_directory_urls: true
 
 theme:
-  name: readthedocs
-  highlightjs: true
+  name: shadcn
+  show_stargazers: false
 
 plugins:
   - search

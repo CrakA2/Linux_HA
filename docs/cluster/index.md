@@ -275,6 +275,225 @@ crm_mon
 
 ---
 
+---
+
+## Corosync + Pacemaker + OVS Stack
+
+Integrated high availability stack combining Corosync messaging, Pacemaker resource management, and Open vSwitch networking.
+
+### Architecture Overview
+
+```mermaid
+graph TB
+    A[VMs] --> B[OVS Bridge]
+    B --> C[Physical Network]
+    
+    D[Pacemaker CRM] --> E[OVS Resources]
+    D --> F[VIP Resources]
+    D --> G[Application Resources]
+    
+    E --> B
+    
+    H[Corosync] --> D
+    I[Quorum] --> D
+    J[STONITH] --> D
+    
+    style B fill:#c8e6c9
+    style D fill:#ffecb3
+    style H fill:#e1f5ff
+```
+
+### Integration Components
+
+- **Corosync**: Cluster messaging and quorum
+- **Pacemaker**: Resource management and failover
+- **OVS**: Network virtualization and connectivity
+
+### OVS Resources in Pacemaker
+
+```bash
+# Create OVS bridge resource
+pcs resource create ovs-bridge ocf:heartbeat:ovs-bridge \
+    bridge_name=br0
+
+# Create OVS port resource
+pcs resource create ovs-port ocf:heartbeat:ovs-port \
+    bridge_name=br0 port_name=eth0
+
+# Create OVS interface resource
+pcs resource create ovs-intf ocf:heartbeat:ovs-interface \
+    bridge_name=br0 interface=eth1 ip=192.168.1.100/24
+
+# Add ordering constraints
+pcs constraint order start ovs-bridge then ovs-port
+pcs constraint order start ovs-port then ovs-intf
+
+# Add colocation constraints
+pcs constraint colocation add ovs-port with ovs-bridge
+pcs constraint colocation add ovs-intf with ovs-port
+```
+
+### Full Stack Deployment
+
+```bash
+# 1. Install all components
+apt-get install corosync pacemaker pcs openvswitch-switch
+
+# 2. Configure Corosync
+corosync-keygen
+vim /etc/corosync/corosync.conf
+
+# 3. Configure Pacemaker cluster
+pcs cluster setup --name ha-cluster node1 node2 node3
+pcs cluster start --all
+
+# 4. Configure OVS
+ovs-vsctl add-br br0
+ovs-vsctl add-port br0 eth0
+ovs-vsctl add-port br0 eth1
+
+# 5. Create OVS resources
+pcs resource create ovs-bridge ocf:heartbeat:ovs-bridge bridge_name=br0
+pcs resource create ovs-port ocf:heartbeat:ovs-port bridge_name=br0 port_name=eth0
+pcs resource create ovs-intf ocf:heartbeat:ovs-interface bridge_name=br0 interface=eth1 ip=192.168.1.100/24
+
+# 6. Create VIP resource
+pcs resource create vip ocf:heartbeat:IPaddr2 ip=192.168.1.200 cidr_netmask=24
+
+# 7. Create application resource
+pcs resource create app systemd:myapp
+
+# 8. Add constraints
+pcs constraint order start ovs-bridge then ovs-port
+pcs constraint order start ovs-port then ovs-intf
+pcs constraint order start ovs-intf then vip
+pcs constraint order start vip then app
+
+pcs constraint colocation add ovs-port with ovs-bridge
+pcs constraint colocation add ovs-intf with ovs-port
+pcs constraint colocation add vip with ovs-intf
+pcs constraint colocation add app with vip
+
+# 9. Enable STONITH
+pcs stonith create fence-device fence_ipmilan
+pcs property set stonith-enabled=true
+
+# 10. Start resources
+pcs resource start ovs-bridge
+```
+
+### Sample Corosync Configuration
+
+```conf
+totem {
+    version: 2
+    cluster_name: ha-cluster
+    transport: knet
+    interface {
+        ringnumber: 0
+        bindnetaddr: 192.168.1.0
+        mcastport: 5405
+    }
+}
+
+nodelist {
+    node {
+        ring0_addr: 192.168.1.10
+        name: node1
+    }
+    node {
+        ring0_addr: 192.168.1.11
+        name: node2
+    }
+    node {
+        ring0_addr: 192.168.1.12
+        name: node3
+    }
+}
+
+quorum {
+    provider: corosync_votequorum
+    expected_votes: 3
+}
+
+logging {
+    to_logfile: yes
+    logfile: /var/log/corosync/corosync.log
+    to_syslog: yes
+}
+```
+
+### Resource Monitoring
+
+```bash
+# Monitor all resources
+pcs status resources
+
+# Monitor OVS-specific resources
+pcs status resources ovs-bridge ovs-port ovs-intf
+
+# Check OVS configuration
+ovs-vsctl show
+
+# Check Corosync status
+corosync-cfgtool -s
+corosync-quorumtool -s
+
+# Check Pacemaker status
+pcs status
+crm_mon
+```
+
+### Failover Testing
+
+```bash
+# Test OVS failover
+pcs resource move ovs-bridge node2
+
+# Test application failover
+pcs resource move app node3
+
+# Verify network connectivity
+ping 192.168.1.200
+
+# Verify OVS bridge
+ovs-ofctl show br0
+```
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| OVS bridge not starting | Check OVS agent logs: `pcs resource debug-resource ovs-bridge` |
+| VIP not accessible | Verify OVS bridge is running before VIP |
+| Network partition | Verify Corosync quorum: `corosync-quorumtool -s` |
+| Resource stuck | Check constraints: `pcs constraint show --full` |
+
+### Nifty Behaviors
+
+### OVS Bridge Resource Clone
+```bash
+pcs resource create ovs-bridge ocf:heartbeat:ovs-bridge bridge_name=br0 \
+    --clone
+```
+**Nifty**: Run OVS bridge on all nodes simultaneously
+
+### Symmetric Cloning for High Availability
+```bash
+pcs resource clone app clone-max=2 clone-node-max=1
+```
+**Nifty**: Application runs on multiple nodes with load balancing
+
+### OVS Interface with Bonding
+```bash
+ovs-vsctl add-bond bond0 eth0 eth1
+pcs resource create ovs-bond ocf:heartbeat:ovs-port \
+    bridge_name=br0 port_name=bond0
+```
+**Nifty**: Network redundancy with bonded interfaces
+
+---
+
 ## Troubleshooting
 
 For in-depth troubleshooting focused on code behavior and diagnostics, see [Deployment](../deployment.md) section.
