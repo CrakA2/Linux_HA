@@ -6,8 +6,8 @@ site_dir: site
 use_directory_urls: true
 
 theme:
-  name: shadcn
-  show_stargazers: false
+  name: readthedocs
+  highlightjs: true
 
 plugins:
   - search
