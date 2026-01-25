@@ -540,28 +540,25 @@
 <li>Quota support</li>
 </ul>
 <h2 id="quick-commands">Quick Commands</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># Create filesystem</span>
-</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>mkfs.gfs2<span class="w"> </span>-p<span class="w"> </span>lock_dlm<span class="w"> </span>-t<span class="w"> </span>mycluster<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="w">    </span>-j<span class="w"> </span><span class="m">2</span><span class="w"> </span>/dev/drbd/by-res/resource-data
-</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="c1"># Mount GFS2</span>
-</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>mount<span class="w"> </span>-t<span class="w"> </span>gfs2<span class="w"> </span>-o<span class="w"> </span>noatime,nodiratime<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="w">    </span>/dev/drbd/by-res/resource-data<span class="w"> </span>/mnt/gfs2
-</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="c1"># DLM management</span>
-</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a>dlm_tool<span class="w"> </span>ls
-</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a>dlm_tool<span class="w"> </span>dump
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Create filesystem
+mkfs.gfs2 -p lock_dlm -t mycluster \
+    -j 2 /dev/drbd/by-res/resource-data
+
+# Mount GFS2
+mount -t gfs2 -o noatime,nodiratime \
+    /dev/drbd/by-res/resource-data /mnt/gfs2
+
+# DLM management
+dlm_tool ls
+dlm_tool dump</code></pre>
 <h2 id="nifty-behaviors">Nifty Behaviors</h2>
 <h3 id="quota-management">Quota Management</h3>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a>gfs2_quota<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>/mnt/gfs2
-</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>gfs2_quota<span class="w"> </span>limit<span class="w"> </span>-u<span class="w"> </span>&lt;uid&gt;<span class="w"> </span>100G<span class="w"> </span>/mnt/gfs2
-</span></code></pre></div>
+<p><pre class="highlight"><code class="language-bash">gfs2_quota enable /mnt/gfs2
+gfs2_quota limit -u &lt;uid&gt; 100G /mnt/gfs2</code></pre>
 <strong>Nifty</strong>: Enforce user quotas on shared filesystem</p>
 <h3 id="snapshots-with-clvm">Snapshots with CLVM</h3>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a>lvcreate<span class="w"> </span>-L<span class="w"> </span>10G<span class="w"> </span>-s<span class="w"> </span>-n<span class="w"> </span>my_lv_snap<span class="w"> </span>mycluster_vg/my_lv
-</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>lvdisplay<span class="w"> </span>mycluster_vg
-</span></code></pre></div>
+<p><pre class="highlight"><code class="language-bash">lvcreate -L 10G -s -n my_lv_snap mycluster_vg/my_lv
+lvdisplay mycluster_vg</code></pre>
 <strong>Nifty</strong>: Point-in-time snapshots with LVM</p>
 <h2 id="source-code">Source Code</h2>
 <ul>

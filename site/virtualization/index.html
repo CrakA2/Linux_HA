@@ -529,19 +529,18 @@
 <li>Device emulation (network, storage, graphics)</li>
 </ul>
 <h3 id="quick-commands">Quick Commands</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># Create VM</span>
-</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>qemu-system-x86_64<span class="w"> </span>-name<span class="w"> </span>vm1<span class="w"> </span>-m<span class="w"> </span><span class="m">2048</span><span class="w"> </span>-smp<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="w">    </span>-drive<span class="w"> </span><span class="nv">file</span><span class="o">=</span>disk.qcow2,format<span class="o">=</span>qcow2<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="w">    </span>-netdev<span class="w"> </span>user,id<span class="o">=</span>net0,hostfwd<span class="o">=</span>tcp::2222-:22
-</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="c1"># Enable KVM</span>
-</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>qemu-system-x86_64<span class="w"> </span>-enable-kvm<span class="w"> </span>-name<span class="w"> </span>vm1<span class="w"> </span>-m<span class="w"> </span><span class="m">4096</span><span class="w"> </span>-smp<span class="w"> </span><span class="m">4</span>
-</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="c1"># Disk management</span>
-</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a>qemu-img<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>qcow2<span class="w"> </span>disk.qcow2<span class="w"> </span>20G
-</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a>qemu-img<span class="w"> </span>info<span class="w"> </span>disk.qcow2
-</span><span id="__span-0-12"><a href="#__codelineno-0-12" id="__codelineno-0-12" name="__codelineno-0-12"></a>qemu-img<span class="w"> </span>resize<span class="w"> </span>disk.qcow2<span class="w"> </span>+10G
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Create VM
+qemu-system-x86_64 -name vm1 -m 2048 -smp 2 \
+    -drive file=disk.qcow2,format=qcow2 \
+    -netdev user,id=net0,hostfwd=tcp::2222-:22
+
+# Enable KVM
+qemu-system-x86_64 -enable-kvm -name vm1 -m 4096 -smp 4
+
+# Disk management
+qemu-img create -f qcow2 disk.qcow2 20G
+qemu-img info disk.qcow2
+qemu-img resize disk.qcow2 +10G</code></pre>
 <h3 id="source-code">Source Code</h3>
 <ul>
 <li><strong>Repository</strong>: <a href="https://gitlab.com/qemu-project/qemu">qemu-project/qemu</a></li>
@@ -567,17 +566,16 @@
 <li>Live migration support</li>
 </ul>
 <h3 id="quick-commands_1">Quick Commands</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="c1"># Check support</span>
-</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>lscpu<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>Virtualization
-</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a>egrep<span class="w"> </span>-c<span class="w"> </span><span class="s1">'(vmx|svm)'</span><span class="w"> </span>/proc/cpuinfo
-</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="c1"># Load modules</span>
-</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a>modprobe<span class="w"> </span>kvm-intel<span class="w">  </span><span class="c1"># Intel</span>
-</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a>modprobe<span class="w"> </span>kvm-amd<span class="w">    </span><span class="c1"># AMD</span>
-</span><span id="__span-1-8"><a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a>
-</span><span id="__span-1-9"><a href="#__codelineno-1-9" id="__codelineno-1-9" name="__codelineno-1-9"></a><span class="c1"># Verify</span>
-</span><span id="__span-1-10"><a href="#__codelineno-1-10" id="__codelineno-1-10" name="__codelineno-1-10"></a>kvm-ok
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Check support
+lscpu | grep Virtualization
+egrep -c '(vmx|svm)' /proc/cpuinfo
+
+# Load modules
+modprobe kvm-intel  # Intel
+modprobe kvm-amd    # AMD
+
+# Verify
+kvm-ok</code></pre>
 <h3 id="source-code_1">Source Code</h3>
 <ul>
 <li><strong>Location</strong>: <code>virt/kvm/</code> in Linux kernel</li>
@@ -606,20 +604,19 @@
 <li>Secure API with authentication</li>
 </ul>
 <h3 id="quick-commands_2">Quick Commands</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="c1"># List VMs</span>
-</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>virsh<span class="w"> </span>list<span class="w"> </span>--all
-</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="c1"># VM operations</span>
-</span><span id="__span-2-5"><a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a>virsh<span class="w"> </span>start<span class="w"> </span>vm1
-</span><span id="__span-2-6"><a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a>virsh<span class="w"> </span>shutdown<span class="w"> </span>vm1
-</span><span id="__span-2-7"><a href="#__codelineno-2-7" id="__codelineno-2-7" name="__codelineno-2-7"></a>virsh<span class="w"> </span>destroy<span class="w"> </span>vm1
-</span><span id="__span-2-8"><a href="#__codelineno-2-8" id="__codelineno-2-8" name="__codelineno-2-8"></a>virsh<span class="w"> </span>dumpxml<span class="w"> </span>vm1
-</span><span id="__span-2-9"><a href="#__codelineno-2-9" id="__codelineno-2-9" name="__codelineno-2-9"></a>
-</span><span id="__span-2-10"><a href="#__codelineno-2-10" id="__codelineno-2-10" name="__codelineno-2-10"></a><span class="c1"># Network management</span>
-</span><span id="__span-2-11"><a href="#__codelineno-2-11" id="__codelineno-2-11" name="__codelineno-2-11"></a>virsh<span class="w"> </span>net-list
-</span><span id="__span-2-12"><a href="#__codelineno-2-12" id="__codelineno-2-12" name="__codelineno-2-12"></a>virsh<span class="w"> </span>net-define<span class="w"> </span>network.xml
-</span><span id="__span-2-13"><a href="#__codelineno-2-13" id="__codelineno-2-13" name="__codelineno-2-13"></a>virsh<span class="w"> </span>net-start<span class="w"> </span>default
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># List VMs
+virsh list --all
+
+# VM operations
+virsh start vm1
+virsh shutdown vm1
+virsh destroy vm1
+virsh dumpxml vm1
+
+# Network management
+virsh net-list
+virsh net-define network.xml
+virsh net-start default</code></pre>
 <h3 id="source-code_2">Source Code</h3>
 <ul>
 <li><strong>Repository</strong>: <a href="https://gitlab.com/libvirt/libvirt">libvirt/libvirt</a></li>
@@ -629,29 +626,28 @@
 <h2 id="virsh">virsh</h2>
 <p>Command-line interface for managing libvirt virtualization.</p>
 <h3 id="quick-commands_3">Quick Commands</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="c1"># VM Management</span>
-</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a>virsh<span class="w"> </span>list<span class="w">                   </span><span class="c1"># List running VMs</span>
-</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a>virsh<span class="w"> </span>list<span class="w"> </span>--all<span class="w">            </span><span class="c1"># List all VMs</span>
-</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a>virsh<span class="w"> </span>start<span class="w"> </span>&lt;vm-name&gt;<span class="w">        </span><span class="c1"># Start VM</span>
-</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a>virsh<span class="w"> </span>shutdown<span class="w"> </span>&lt;vm-name&gt;<span class="w">     </span><span class="c1"># Shutdown VM</span>
-</span><span id="__span-3-6"><a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a>virsh<span class="w"> </span>destroy<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># Force stop VM</span>
-</span><span id="__span-3-7"><a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a>virsh<span class="w"> </span>undefine<span class="w"> </span>&lt;vm-name&gt;<span class="w">    </span><span class="c1"># Remove VM</span>
-</span><span id="__span-3-8"><a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a href="#__codelineno-3-9" id="__codelineno-3-9" name="__codelineno-3-9"></a><span class="c1"># VM Information</span>
-</span><span id="__span-3-10"><a href="#__codelineno-3-10" id="__codelineno-3-10" name="__codelineno-3-10"></a>virsh<span class="w"> </span>dominfo<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># Domain info</span>
-</span><span id="__span-3-11"><a href="#__codelineno-3-11" id="__codelineno-3-11" name="__codelineno-3-11"></a>virsh<span class="w"> </span>dumpxml<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># XML config</span>
-</span><span id="__span-3-12"><a href="#__codelineno-3-12" id="__codelineno-3-12" name="__codelineno-3-12"></a>virsh<span class="w"> </span>vcpuinfo<span class="w"> </span>&lt;vm-name&gt;<span class="w">     </span><span class="c1"># VCPU info</span>
-</span><span id="__span-3-13"><a href="#__codelineno-3-13" id="__codelineno-3-13" name="__codelineno-3-13"></a>virsh<span class="w"> </span>dommemstat<span class="w"> </span>&lt;vm-name&gt;<span class="w">   </span><span class="c1"># Memory stats</span>
-</span><span id="__span-3-14"><a href="#__codelineno-3-14" id="__codelineno-3-14" name="__codelineno-3-14"></a>
-</span><span id="__span-3-15"><a href="#__codelineno-3-15" id="__codelineno-3-15" name="__codelineno-3-15"></a><span class="c1"># Snapshot Management</span>
-</span><span id="__span-3-16"><a href="#__codelineno-3-16" id="__codelineno-3-16" name="__codelineno-3-16"></a>virsh<span class="w"> </span>snapshot-create<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span>&lt;snap-name&gt;
-</span><span id="__span-3-17"><a href="#__codelineno-3-17" id="__codelineno-3-17" name="__codelineno-3-17"></a>virsh<span class="w"> </span>snapshot-list<span class="w"> </span>&lt;vm-name&gt;
-</span><span id="__span-3-18"><a href="#__codelineno-3-18" id="__codelineno-3-18" name="__codelineno-3-18"></a>virsh<span class="w"> </span>snapshot-revert<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span>&lt;snap-name&gt;
-</span><span id="__span-3-19"><a href="#__codelineno-3-19" id="__codelineno-3-19" name="__codelineno-3-19"></a>
-</span><span id="__span-3-20"><a href="#__codelineno-3-20" id="__codelineno-3-20" name="__codelineno-3-20"></a><span class="c1"># Console Access</span>
-</span><span id="__span-3-21"><a href="#__codelineno-3-21" id="__codelineno-3-21" name="__codelineno-3-21"></a>virsh<span class="w"> </span>console<span class="w"> </span>&lt;vm-name&gt;
-</span><span id="__span-3-22"><a href="#__codelineno-3-22" id="__codelineno-3-22" name="__codelineno-3-22"></a>virsh<span class="w"> </span>qemu-monitor-command<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span><span class="s2">"info status"</span>
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># VM Management
+virsh list                   # List running VMs
+virsh list --all            # List all VMs
+virsh start &lt;vm-name&gt;        # Start VM
+virsh shutdown &lt;vm-name&gt;     # Shutdown VM
+virsh destroy &lt;vm-name&gt;      # Force stop VM
+virsh undefine &lt;vm-name&gt;    # Remove VM
+
+# VM Information
+virsh dominfo &lt;vm-name&gt;      # Domain info
+virsh dumpxml &lt;vm-name&gt;      # XML config
+virsh vcpuinfo &lt;vm-name&gt;     # VCPU info
+virsh dommemstat &lt;vm-name&gt;   # Memory stats
+
+# Snapshot Management
+virsh snapshot-create &lt;vm-name&gt; &lt;snap-name&gt;
+virsh snapshot-list &lt;vm-name&gt;
+virsh snapshot-revert &lt;vm-name&gt; &lt;snap-name&gt;
+
+# Console Access
+virsh console &lt;vm-name&gt;
+virsh qemu-monitor-command &lt;vm-name&gt; "info status"</code></pre>
 <hr/>
 <h2 id="open-vswitch">Open vSwitch</h2>
 <p>Open source multilayer virtual switch for managing VM networking.</p>
@@ -674,21 +670,20 @@
 <li>Remote management protocol</li>
 </ul>
 <h3 id="quick-commands_4">Quick Commands</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="c1"># Bridge Management</span>
-</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>ovs-vsctl<span class="w"> </span>add-br<span class="w"> </span>br0
-</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a>ovs-vsctl<span class="w"> </span>del-br<span class="w"> </span>br0
-</span><span id="__span-4-4"><a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a>ovs-vsctl<span class="w"> </span>list-br
-</span><span id="__span-4-5"><a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a href="#__codelineno-4-6" id="__codelineno-4-6" name="__codelineno-4-6"></a><span class="c1"># Port Management</span>
-</span><span id="__span-4-7"><a href="#__codelineno-4-7" id="__codelineno-4-7" name="__codelineno-4-7"></a>ovs-vsctl<span class="w"> </span>add-port<span class="w"> </span>br0<span class="w"> </span>eth0
-</span><span id="__span-4-8"><a href="#__codelineno-4-8" id="__codelineno-4-8" name="__codelineno-4-8"></a>ovs-vsctl<span class="w"> </span>del-port<span class="w"> </span>br0<span class="w"> </span>eth0
-</span><span id="__span-4-9"><a href="#__codelineno-4-9" id="__codelineno-4-9" name="__codelineno-4-9"></a>ovs-vsctl<span class="w"> </span>list-ports<span class="w"> </span>br0
-</span><span id="__span-4-10"><a href="#__codelineno-4-10" id="__codelineno-4-10" name="__codelineno-4-10"></a>
-</span><span id="__span-4-11"><a href="#__codelineno-4-11" id="__codelineno-4-11" name="__codelineno-4-11"></a><span class="c1"># Configuration</span>
-</span><span id="__span-4-12"><a href="#__codelineno-4-12" id="__codelineno-4-12" name="__codelineno-4-12"></a>ovs-vsctl<span class="w"> </span>show
-</span><span id="__span-4-13"><a href="#__codelineno-4-13" id="__codelineno-4-13" name="__codelineno-4-13"></a>ovs-ofctl<span class="w"> </span>show<span class="w"> </span>br0
-</span><span id="__span-4-14"><a href="#__codelineno-4-14" id="__codelineno-4-14" name="__codelineno-4-14"></a>ovs-vsctls<span class="w"> </span>show
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Bridge Management
+ovs-vsctl add-br br0
+ovs-vsctl del-br br0
+ovs-vsctl list-br
+
+# Port Management
+ovs-vsctl add-port br0 eth0
+ovs-vsctl del-port br0 eth0
+ovs-vsctl list-ports br0
+
+# Configuration
+ovs-vsctl show
+ovs-ofctl show br0
+ovs-vsctls show</code></pre>
 <h3 id="source-code_3">Source Code</h3>
 <ul>
 <li><strong>Repository</strong>: <a href="https://github.com/openvswitch/ovs">openvswitch/ovs</a></li>
@@ -697,41 +692,37 @@
 <hr/>
 <h2 id="deployment-workflow">Deployment Workflow</h2>
 <h3 id="1-hardware-verification">1. Hardware Verification</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="c1"># Check virtualization support</span>
-</span><span id="__span-5-2"><a href="#__codelineno-5-2" id="__codelineno-5-2" name="__codelineno-5-2"></a>lscpu<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>Virtualization
-</span><span id="__span-5-3"><a href="#__codelineno-5-3" id="__codelineno-5-3" name="__codelineno-5-3"></a>egrep<span class="w"> </span>-c<span class="w"> </span><span class="s1">'(vmx|svm)'</span><span class="w"> </span>/proc/cpuinfo
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Check virtualization support
+lscpu | grep Virtualization
+egrep -c '(vmx|svm)' /proc/cpuinfo</code></pre>
 <h3 id="2-software-installation">2. Software Installation</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a href="#__codelineno-6-1" id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="c1"># Install packages</span>
-</span><span id="__span-6-2"><a href="#__codelineno-6-2" id="__codelineno-6-2" name="__codelineno-6-2"></a>apt-get<span class="w"> </span>install<span class="w"> </span>qemu-kvm<span class="w"> </span>libvirt-daemon-system<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-3"><a href="#__codelineno-6-3" id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="w">    </span>libvirt-clients<span class="w"> </span>virt-manager<span class="w"> </span>openvswitch
-</span><span id="__span-6-4"><a href="#__codelineno-6-4" id="__codelineno-6-4" name="__codelineno-6-4"></a>
-</span><span id="__span-6-5"><a href="#__codelineno-6-5" id="__codelineno-6-5" name="__codelineno-6-5"></a><span class="c1"># Enable services</span>
-</span><span id="__span-6-6"><a href="#__codelineno-6-6" id="__codelineno-6-6" name="__codelineno-6-6"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>libvirtd
-</span><span id="__span-6-7"><a href="#__codelineno-6-7" id="__codelineno-6-7" name="__codelineno-6-7"></a>systemctl<span class="w"> </span>start<span class="w"> </span>libvirtd
-</span><span id="__span-6-8"><a href="#__codelineno-6-8" id="__codelineno-6-8" name="__codelineno-6-8"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>openvswitch
-</span><span id="__span-6-9"><a href="#__codelineno-6-9" id="__codelineno-6-9" name="__codelineno-6-9"></a>systemctl<span class="w"> </span>start<span class="w"> </span>openvswitch
-</span><span id="__span-6-10"><a href="#__codelineno-6-10" id="__codelineno-6-10" name="__codelineno-6-10"></a>
-</span><span id="__span-6-11"><a href="#__codelineno-6-11" id="__codelineno-6-11" name="__codelineno-6-11"></a><span class="c1"># Verify</span>
-</span><span id="__span-6-12"><a href="#__codelineno-6-12" id="__codelineno-6-12" name="__codelineno-6-12"></a>virsh<span class="w"> </span>version
-</span><span id="__span-6-13"><a href="#__codelineno-6-13" id="__codelineno-6-13" name="__codelineno-6-13"></a>ovs-vsctl<span class="w"> </span>show
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Install packages
+apt-get install qemu-kvm libvirt-daemon-system \
+    libvirt-clients virt-manager openvswitch
+
+# Enable services
+systemctl enable libvirtd
+systemctl start libvirtd
+systemctl enable openvswitch
+systemctl start openvswitch
+
+# Verify
+virsh version
+ovs-vsctl show</code></pre>
 <h3 id="3-network-setup">3. Network Setup</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a href="#__codelineno-7-1" id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="c1"># Create OVS bridge</span>
-</span><span id="__span-7-2"><a href="#__codelineno-7-2" id="__codelineno-7-2" name="__codelineno-7-2"></a>ovs-vsctl<span class="w"> </span>add-br<span class="w"> </span>br0
-</span><span id="__span-7-3"><a href="#__codelineno-7-3" id="__codelineno-7-3" name="__codelineno-7-3"></a>ovs-vsctl<span class="w"> </span>add-port<span class="w"> </span>br0<span class="w"> </span>eth0
-</span><span id="__span-7-4"><a href="#__codelineno-7-4" id="__codelineno-7-4" name="__codelineno-7-4"></a>ovs-vsctl<span class="w"> </span>add-port<span class="w"> </span>br0<span class="w"> </span>eth1
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Create OVS bridge
+ovs-vsctl add-br br0
+ovs-vsctl add-port br0 eth0
+ovs-vsctl add-port br0 eth1</code></pre>
 <h3 id="4-create-vm">4. Create VM</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="c1"># Using virt-install</span>
-</span><span id="__span-8-2"><a href="#__codelineno-8-2" id="__codelineno-8-2" name="__codelineno-8-2"></a>virt-install<span class="w"> </span>--name<span class="w"> </span>vm1<span class="w"> </span>--memory<span class="w"> </span><span class="m">2048</span><span class="w"> </span>--vcpus<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-3"><a href="#__codelineno-8-3" id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="w">    </span>--disk<span class="w"> </span><span class="nv">path</span><span class="o">=</span>/var/lib/libvirt/images/vm1.qcow2,size<span class="o">=</span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-4"><a href="#__codelineno-8-4" id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="w">    </span>--network<span class="w"> </span><span class="nv">bridge</span><span class="o">=</span>br0
-</span><span id="__span-8-5"><a href="#__codelineno-8-5" id="__codelineno-8-5" name="__codelineno-8-5"></a>
-</span><span id="__span-8-6"><a href="#__codelineno-8-6" id="__codelineno-8-6" name="__codelineno-8-6"></a><span class="c1"># Or using virsh</span>
-</span><span id="__span-8-7"><a href="#__codelineno-8-7" id="__codelineno-8-7" name="__codelineno-8-7"></a>virsh<span class="w"> </span>define<span class="w"> </span>vm1.xml
-</span><span id="__span-8-8"><a href="#__codelineno-8-8" id="__codelineno-8-8" name="__codelineno-8-8"></a>virsh<span class="w"> </span>start<span class="w"> </span>vm1
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Using virt-install
+virt-install --name vm1 --memory 2048 --vcpus 2 \
+    --disk path=/var/lib/libvirt/images/vm1.qcow2,size=20 \
+    --network bridge=br0
+
+# Or using virsh
+virsh define vm1.xml
+virsh start vm1</code></pre>
 <hr/>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <p>For in-depth troubleshooting focused on code behavior and diagnostics, see <a href="deployment.md">Deployment</a>.</p>

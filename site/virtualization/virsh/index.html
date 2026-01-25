@@ -765,29 +765,28 @@
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
     <p>Command-line interface for managing libvirt virtualization.</p>
 <h2 id="quick-commands">Quick Commands</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># VM Management</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>virsh<span class="w"> </span>list<span class="w">                   </span><span class="c1"># List running VMs</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>virsh<span class="w"> </span>list<span class="w"> </span>--all<span class="w">            </span><span class="c1"># List all VMs</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>virsh<span class="w"> </span>start<span class="w"> </span>&lt;vm-name&gt;<span class="w">        </span><span class="c1"># Start VM</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>virsh<span class="w"> </span>shutdown<span class="w"> </span>&lt;vm-name&gt;<span class="w">     </span><span class="c1"># Shutdown VM</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>virsh<span class="w"> </span>destroy<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># Force stop VM</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>virsh<span class="w"> </span>undefine<span class="w"> </span>&lt;vm-name&gt;<span class="w">    </span><span class="c1"># Remove VM</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># VM Information</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>virsh<span class="w"> </span>dominfo<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># Domain information</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>virsh<span class="w"> </span>dumpxml<span class="w"> </span>&lt;vm-name&gt;<span class="w">      </span><span class="c1"># XML configuration</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>virsh<span class="w"> </span>vcpuinfo<span class="w"> </span>&lt;vm-name&gt;<span class="w">     </span><span class="c1"># VCPU information</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>virsh<span class="w"> </span>dommemstat<span class="w"> </span>&lt;vm-name&gt;<span class="w">   </span><span class="c1"># Memory statistics</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># Snapshot Management</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>virsh<span class="w"> </span>snapshot-create<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span>&lt;snap-name&gt;
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>virsh<span class="w"> </span>snapshot-list<span class="w"> </span>&lt;vm-name&gt;
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>virsh<span class="w"> </span>snapshot-revert<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span>&lt;snap-name&gt;
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1"># Console Access</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>virsh<span class="w"> </span>console<span class="w"> </span>&lt;vm-name&gt;
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>virsh<span class="w"> </span>qemu-monitor-command<span class="w"> </span>&lt;vm-name&gt;<span class="w"> </span><span class="s2">&quot;info status&quot;</span>
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># VM Management
+virsh list                   # List running VMs
+virsh list --all            # List all VMs
+virsh start &lt;vm-name&gt;        # Start VM
+virsh shutdown &lt;vm-name&gt;     # Shutdown VM
+virsh destroy &lt;vm-name&gt;      # Force stop VM
+virsh undefine &lt;vm-name&gt;    # Remove VM
+
+# VM Information
+virsh dominfo &lt;vm-name&gt;      # Domain information
+virsh dumpxml &lt;vm-name&gt;      # XML configuration
+virsh vcpuinfo &lt;vm-name&gt;     # VCPU information
+virsh dommemstat &lt;vm-name&gt;   # Memory statistics
+
+# Snapshot Management
+virsh snapshot-create &lt;vm-name&gt; &lt;snap-name&gt;
+virsh snapshot-list &lt;vm-name&gt;
+virsh snapshot-revert &lt;vm-name&gt; &lt;snap-name&gt;
+
+# Console Access
+virsh console &lt;vm-name&gt;
+virsh qemu-monitor-command &lt;vm-name&gt; "info status"</code></pre>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">

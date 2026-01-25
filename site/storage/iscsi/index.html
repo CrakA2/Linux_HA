@@ -526,33 +526,30 @@
 <li>Multipath I/O support</li>
 </ul>
 <h2 id="quick-commands">Quick Commands</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># Create RBD image</span>
-</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>rbd<span class="w"> </span>create<span class="w"> </span>rbd/disk1<span class="w"> </span>--size<span class="w"> </span>100G
-</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="c1"># Configure iSCSI gateway</span>
-</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>ceph<span class="w"> </span>orch<span class="w"> </span>apply<span class="w"> </span>iscsi<span class="w"> </span>gateway.yml
-</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="c1"># Target management</span>
-</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>gwcli.py<span class="w"> </span>target<span class="w"> </span>create<span class="w"> </span>&lt;target-iqn&gt;
-</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a>gwcli.py<span class="w"> </span>lun<span class="w"> </span>create<span class="w"> </span>&lt;target-iqn&gt;<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="w">    </span>--pool<span class="w"> </span>rbd<span class="w"> </span>--image<span class="w"> </span>disk1
-</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a href="#__codelineno-0-12" id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="c1"># Initiator discovery</span>
-</span><span id="__span-0-13"><a href="#__codelineno-0-13" id="__codelineno-0-13" name="__codelineno-0-13"></a>iscsiadm<span class="w"> </span>-m<span class="w"> </span>discovery<span class="w"> </span>-t<span class="w"> </span>st<span class="w"> </span>-p<span class="w"> </span>&lt;target-ip&gt;
-</span><span id="__span-0-14"><a href="#__codelineno-0-14" id="__codelineno-0-14" name="__codelineno-0-14"></a>iscsiadm<span class="w"> </span>-m<span class="w"> </span>node<span class="w"> </span>-T<span class="w"> </span>&lt;target-iqn&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;target-ip&gt;<span class="w"> </span>--login
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Create RBD image
+rbd create rbd/disk1 --size 100G
+
+# Configure iSCSI gateway
+ceph orch apply iscsi gateway.yml
+
+# Target management
+gwcli.py target create &lt;target-iqn&gt;
+gwcli.py lun create &lt;target-iqn&gt; 0 \
+    --pool rbd --image disk1
+
+# Initiator discovery
+iscsiadm -m discovery -t st -p &lt;target-ip&gt;
+iscsiadm -m node -T &lt;target-iqn&gt; -p &lt;target-ip&gt; --login</code></pre>
 <h2 id="nifty-behaviors">Nifty Behaviors</h2>
 <h3 id="chap-authentication">CHAP Authentication</h3>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="c1"># Configure CHAP on gateway</span>
-</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>gwcli.py<span class="w"> </span>target<span class="w"> </span>set_chap<span class="w"> </span>&lt;target-iqn&gt;<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="w">    </span>--user<span class="w"> </span>&lt;username&gt;<span class="w"> </span>--password<span class="w"> </span>&lt;password&gt;
-</span></code></pre></div>
+<p><pre class="highlight"><code class="language-bash"># Configure CHAP on gateway
+gwcli.py target set_chap &lt;target-iqn&gt; \
+    --user &lt;username&gt; --password &lt;password&gt;</code></pre>
 <strong>Nifty</strong>: Secure iSCSI connections</p>
 <h3 id="ha-gateway-groups">HA Gateway Groups</h3>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="c1"># Create gateway group</span>
-</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>gwcli.py<span class="w"> </span>group<span class="w"> </span>create<span class="w"> </span>&lt;group-name&gt;
-</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a>gwcli.py<span class="w"> </span>group<span class="w"> </span>add_gateway<span class="w"> </span>&lt;group-name&gt;<span class="w"> </span>&lt;gateway-host&gt;
-</span></code></pre></div>
+<p><pre class="highlight"><code class="language-bash"># Create gateway group
+gwcli.py group create &lt;group-name&gt;
+gwcli.py group add_gateway &lt;group-name&gt; &lt;gateway-host&gt;</code></pre>
 <strong>Nifty</strong>: Redundant iSCSI gateways</p>
 <h2 id="source-code">Source Code</h2>
 <ul>

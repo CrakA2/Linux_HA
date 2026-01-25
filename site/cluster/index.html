@@ -528,32 +528,30 @@
 <li><strong>Ring Topology</strong>: Efficient message delivery</li>
 </ul>
 <h3 id="quick-commands">Quick Commands</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># Installation</span>
-</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>apt-get<span class="w"> </span>install<span class="w"> </span>corosync
-</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="c1"># Generate authentication key</span>
-</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>corosync-keygen
-</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="c1"># Status</span>
-</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>corosync-cfgtool<span class="w"> </span>-s
-</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a>corosync-quorumtool<span class="w"> </span>-s
-</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a>
-</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="c1"># Configuration</span>
-</span><span id="__span-0-12"><a href="#__codelineno-0-12" id="__codelineno-0-12" name="__codelineno-0-12"></a>corosync-cmapctl
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Installation
+apt-get install corosync
+
+# Generate authentication key
+corosync-keygen
+
+# Status
+corosync-cfgtool -s
+corosync-quorumtool -s
+
+# Configuration
+corosync-cmapctl</code></pre>
 <h3 id="deployment">Deployment</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="c1"># 1. Install and configure</span>
-</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>apt-get<span class="w"> </span>install<span class="w"> </span>corosync
-</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a>corosync-keygen
-</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a>vim<span class="w"> </span>/etc/corosync/corosync.conf
-</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="c1"># 2. Start on all nodes</span>
-</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>corosync
-</span><span id="__span-1-8"><a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a>systemctl<span class="w"> </span>start<span class="w"> </span>corosync
-</span><span id="__span-1-9"><a href="#__codelineno-1-9" id="__codelineno-1-9" name="__codelineno-1-9"></a>
-</span><span id="__span-1-10"><a href="#__codelineno-1-10" id="__codelineno-1-10" name="__codelineno-1-10"></a><span class="c1"># 3. Verify cluster</span>
-</span><span id="__span-1-11"><a href="#__codelineno-1-11" id="__codelineno-1-11" name="__codelineno-1-11"></a>corosync-cfgtool<span class="w"> </span>-s
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># 1. Install and configure
+apt-get install corosync
+corosync-keygen
+vim /etc/corosync/corosync.conf
+
+# 2. Start on all nodes
+systemctl enable corosync
+systemctl start corosync
+
+# 3. Verify cluster
+corosync-cfgtool -s</code></pre>
 <h3 id="source-code">Source Code</h3>
 <ul>
 <li><strong>Repository</strong>: <a href="https://github.com/corosync/corosync">corosync/corosync</a></li>
@@ -606,33 +604,31 @@
 <li><strong>Batches</strong>: Group operations</li>
 </ul>
 <h3 id="quick-commands_1">Quick Commands</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="c1"># Cluster status</span>
-</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>pcs<span class="w"> </span>status
-</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="c1"># Resource management</span>
-</span><span id="__span-2-5"><a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a>pcs<span class="w"> </span>resource<span class="w"> </span>create<span class="w"> </span>vip<span class="w"> </span>ocf:heartbeat:IPaddr2<span class="w"> </span><span class="nv">ip</span><span class="o">=</span><span class="m">192</span>.168.1.100
-</span><span id="__span-2-6"><a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a>pcs<span class="w"> </span>resource<span class="w"> </span>start<span class="w"> </span>vip
-</span><span id="__span-2-7"><a href="#__codelineno-2-7" id="__codelineno-2-7" name="__codelineno-2-7"></a>
-</span><span id="__span-2-8"><a href="#__codelineno-2-8" id="__codelineno-2-8" name="__codelineno-2-8"></a><span class="c1"># Constraints</span>
-</span><span id="__span-2-9"><a href="#__codelineno-2-9" id="__codelineno-2-9" name="__codelineno-2-9"></a>pcs<span class="w"> </span>constraint<span class="w"> </span>order<span class="w"> </span>start<span class="w"> </span>vip<span class="w"> </span><span class="k">then</span><span class="w"> </span>apache
-</span><span id="__span-2-10"><a href="#__codelineno-2-10" id="__codelineno-2-10" name="__codelineno-2-10"></a>pcs<span class="w"> </span>constraint<span class="w"> </span>colocation<span class="w"> </span>add<span class="w"> </span>apache<span class="w"> </span>with<span class="w"> </span>vip
-</span><span id="__span-2-11"><a href="#__codelineno-2-11" id="__codelineno-2-11" name="__codelineno-2-11"></a>
-</span><span id="__span-2-12"><a href="#__codelineno-2-12" id="__codelineno-2-12" name="__codelineno-2-12"></a><span class="c1"># STONITH</span>
-</span><span id="__span-2-13"><a href="#__codelineno-2-13" id="__codelineno-2-13" name="__codelineno-2-13"></a>pcs<span class="w"> </span>stonith<span class="w"> </span>create<span class="w"> </span>fence-device<span class="w"> </span>fence_ipmilan
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Cluster status
+pcs status
+
+# Resource management
+pcs resource create vip ocf:heartbeat:IPaddr2 ip=192.168.1.100
+pcs resource start vip
+
+# Constraints
+pcs constraint order start vip then apache
+pcs constraint colocation add apache with vip
+
+# STONITH
+pcs stonith create fence-device fence_ipmilan</code></pre>
 <h3 id="deployment_1">Deployment</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="c1"># 1. Install components</span>
-</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a>apt-get<span class="w"> </span>install<span class="w"> </span>pacemaker<span class="w"> </span>pcs
-</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="c1"># 2. Configure cluster</span>
-</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a>pcs<span class="w"> </span>cluster<span class="w"> </span>setup<span class="w"> </span>--name<span class="w"> </span>mycluster<span class="w"> </span>node1<span class="w"> </span>node2<span class="w"> </span>node3
-</span><span id="__span-3-6"><a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="c1"># 3. Start cluster</span>
-</span><span id="__span-3-8"><a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a>pcs<span class="w"> </span>cluster<span class="w"> </span>start<span class="w"> </span>--all
-</span><span id="__span-3-9"><a href="#__codelineno-3-9" id="__codelineno-3-9" name="__codelineno-3-9"></a>
-</span><span id="__span-3-10"><a href="#__codelineno-3-10" id="__codelineno-3-10" name="__codelineno-3-10"></a><span class="c1"># 4. Enable STONITH</span>
-</span><span id="__span-3-11"><a href="#__codelineno-3-11" id="__codelineno-3-11" name="__codelineno-3-11"></a>pcs<span class="w"> </span>property<span class="w"> </span><span class="nb">set</span><span class="w"> </span>stonith-enabled<span class="o">=</span><span class="nb">true</span>
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># 1. Install components
+apt-get install pacemaker pcs
+
+# 2. Configure cluster
+pcs cluster setup --name mycluster node1 node2 node3
+
+# 3. Start cluster
+pcs cluster start --all
+
+# 4. Enable STONITH
+pcs property set stonith-enabled=true</code></pre>
 <h3 id="source-code_1">Source Code</h3>
 <ul>
 <li><strong>Repository</strong>: <a href="https://github.com/ClusterLabs/pacemaker">ClusterLabs/pacemaker</a></li>
@@ -669,69 +665,64 @@
 <h2 id="deployment-workflow">Deployment Workflow</h2>
 <p>Complete Corosync and Pacemaker HA cluster setup.</p>
 <h3 id="1-initial-setup">1. Initial Setup</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="c1"># Install all packages</span>
-</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>apt-get<span class="w"> </span>install<span class="w"> </span>corosync<span class="w"> </span>pacemaker<span class="w"> </span>pcs
-</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a><span class="c1"># Generate Corosync key</span>
-</span><span id="__span-4-5"><a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a>corosync-keygen
-</span><span id="__span-4-6"><a href="#__codelineno-4-6" id="__codelineno-4-6" name="__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a href="#__codelineno-4-7" id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="c1"># Distribute key</span>
-</span><span id="__span-4-8"><a href="#__codelineno-4-8" id="__codelineno-4-8" name="__codelineno-4-8"></a>scp<span class="w"> </span>/etc/corosync/authkey<span class="w"> </span>node2:/etc/corosync/
-</span><span id="__span-4-9"><a href="#__codelineno-4-9" id="__codelineno-4-9" name="__codelineno-4-9"></a>scp<span class="w"> </span>/etc/corosync/authkey<span class="w"> </span>node3:/etc/corosync/
-</span><span id="__span-4-10"><a href="#__codelineno-4-10" id="__codelineno-4-10" name="__codelineno-4-10"></a>
-</span><span id="__span-4-11"><a href="#__codelineno-4-11" id="__codelineno-4-11" name="__codelineno-4-11"></a><span class="c1"># Configure Corosync</span>
-</span><span id="__span-4-12"><a href="#__codelineno-4-12" id="__codelineno-4-12" name="__codelineno-4-12"></a><span class="c1"># Edit /etc/corosync/corosync.conf on first node</span>
-</span><span id="__span-4-13"><a href="#__codelineno-4-13" id="__codelineno-4-13" name="__codelineno-4-13"></a>
-</span><span id="__span-4-14"><a href="#__codelineno-4-14" id="__codelineno-4-14" name="__codelineno-4-14"></a><span class="c1"># Copy configuration to all nodes</span>
-</span><span id="__span-4-15"><a href="#__codelineno-4-15" id="__codelineno-4-15" name="__codelineno-4-15"></a>scp<span class="w"> </span>/etc/corosync/corosync.conf<span class="w"> </span>node2:/etc/corosync/
-</span><span id="__span-4-16"><a href="#__codelineno-4-16" id="__codelineno-4-16" name="__codelineno-4-16"></a>scp<span class="w"> </span>/etc/corosync/corosync.conf<span class="w"> </span>node3:/etc/corosync/
-</span><span id="__span-4-17"><a href="#__codelineno-4-17" id="__codelineno-4-17" name="__codelineno-4-17"></a>
-</span><span id="__span-4-18"><a href="#__codelineno-4-18" id="__codelineno-4-18" name="__codelineno-4-18"></a><span class="c1"># Start services</span>
-</span><span id="__span-4-19"><a href="#__codelineno-4-19" id="__codelineno-4-19" name="__codelineno-4-19"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>corosync<span class="w"> </span>pacemaker<span class="w"> </span>pcsd
-</span><span id="__span-4-20"><a href="#__codelineno-4-20" id="__codelineno-4-20" name="__codelineno-4-20"></a>systemctl<span class="w"> </span>start<span class="w"> </span>corosync<span class="w"> </span>pacemaker<span class="w"> </span>pcsd
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Install all packages
+apt-get install corosync pacemaker pcs
+
+# Generate Corosync key
+corosync-keygen
+
+# Distribute key
+scp /etc/corosync/authkey node2:/etc/corosync/
+scp /etc/corosync/authkey node3:/etc/corosync/
+
+# Configure Corosync
+# Edit /etc/corosync/corosync.conf on first node
+
+# Copy configuration to all nodes
+scp /etc/corosync/corosync.conf node2:/etc/corosync/
+scp /etc/corosync/corosync.conf node3:/etc/corosync/
+
+# Start services
+systemctl enable corosync pacemaker pcsd
+systemctl start corosync pacemaker pcsd</code></pre>
 <h3 id="2-verify-cluster">2. Verify Cluster</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="c1"># Check Corosync</span>
-</span><span id="__span-5-2"><a href="#__codelineno-5-2" id="__codelineno-5-2" name="__codelineno-5-2"></a>corosync-cfgtool<span class="w"> </span>-s
-</span><span id="__span-5-3"><a href="#__codelineno-5-3" id="__codelineno-5-3" name="__codelineno-5-3"></a>corosync-quorumtool<span class="w"> </span>-s
-</span><span id="__span-5-4"><a href="#__codelineno-5-4" id="__codelineno-5-4" name="__codelineno-5-4"></a>
-</span><span id="__span-5-5"><a href="#__codelineno-5-5" id="__codelineno-5-5" name="__codelineno-5-5"></a><span class="c1"># Check Pacemaker</span>
-</span><span id="__span-5-6"><a href="#__codelineno-5-6" id="__codelineno-5-6" name="__codelineno-5-6"></a>pcs<span class="w"> </span>status
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Check Corosync
+corosync-cfgtool -s
+corosync-quorumtool -s
+
+# Check Pacemaker
+pcs status</code></pre>
 <h3 id="3-configure-stonith">3. Configure STONITH</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a href="#__codelineno-6-1" id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="c1"># Create fencing device</span>
-</span><span id="__span-6-2"><a href="#__codelineno-6-2" id="__codelineno-6-2" name="__codelineno-6-2"></a>pcs<span class="w"> </span>stonith<span class="w"> </span>create<span class="w"> </span>fence-device<span class="w"> </span>fence_ipmilan<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-3"><a href="#__codelineno-6-3" id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="w">    </span><span class="nv">ipaddr</span><span class="o">=</span><span class="m">192</span>.168.1.200<span class="w"> </span><span class="nv">login</span><span class="o">=</span>admin<span class="w"> </span><span class="nv">passwd</span><span class="o">=</span>password
-</span><span id="__span-6-4"><a href="#__codelineno-6-4" id="__codelineno-6-4" name="__codelineno-6-4"></a>
-</span><span id="__span-6-5"><a href="#__codelineno-6-5" id="__codelineno-6-5" name="__codelineno-6-5"></a><span class="c1"># Verify fencing</span>
-</span><span id="__span-6-6"><a href="#__codelineno-6-6" id="__codelineno-6-6" name="__codelineno-6-6"></a>pcs<span class="w"> </span>stonith<span class="w"> </span>list
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Create fencing device
+pcs stonith create fence-device fence_ipmilan \
+    ipaddr=192.168.1.200 login=admin passwd=password
+
+# Verify fencing
+pcs stonith list</code></pre>
 <h3 id="4-add-resources">4. Add Resources</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a href="#__codelineno-7-1" id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="c1"># Create VIP resource</span>
-</span><span id="__span-7-2"><a href="#__codelineno-7-2" id="__codelineno-7-2" name="__codelineno-7-2"></a>pcs<span class="w"> </span>resource<span class="w"> </span>create<span class="w"> </span>vip<span class="w"> </span>ocf:heartbeat:IPaddr2<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-3"><a href="#__codelineno-7-3" id="__codelineno-7-3" name="__codelineno-7-3"></a><span class="w">    </span><span class="nv">ip</span><span class="o">=</span><span class="m">192</span>.168.1.100<span class="w"> </span><span class="nv">cidr_netmask</span><span class="o">=</span><span class="m">24</span>
-</span><span id="__span-7-4"><a href="#__codelineno-7-4" id="__codelineno-7-4" name="__codelineno-7-4"></a>
-</span><span id="__span-7-5"><a href="#__codelineno-7-5" id="__codelineno-7-5" name="__codelineno-7-5"></a><span class="c1"># Create Apache resource</span>
-</span><span id="__span-7-6"><a href="#__codelineno-7-6" id="__codelineno-7-6" name="__codelineno-7-6"></a>pcs<span class="w"> </span>resource<span class="w"> </span>create<span class="w"> </span>apache<span class="w"> </span>ocf:heartbeat:apache<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-7"><a href="#__codelineno-7-7" id="__codelineno-7-7" name="__codelineno-7-7"></a><span class="w">    </span><span class="nv">configfile</span><span class="o">=</span>/etc/apache2/apache2.conf
-</span><span id="__span-7-8"><a href="#__codelineno-7-8" id="__codelineno-7-8" name="__codelineno-7-8"></a>
-</span><span id="__span-7-9"><a href="#__codelineno-7-9" id="__codelineno-7-9" name="__codelineno-7-9"></a><span class="c1"># Add ordering constraint</span>
-</span><span id="__span-7-10"><a href="#__codelineno-7-10" id="__codelineno-7-10" name="__codelineno-7-10"></a>pcs<span class="w"> </span>constraint<span class="w"> </span>order<span class="w"> </span>start<span class="w"> </span>vip<span class="w"> </span><span class="k">then</span><span class="w"> </span>apache
-</span><span id="__span-7-11"><a href="#__codelineno-7-11" id="__codelineno-7-11" name="__codelineno-7-11"></a>
-</span><span id="__span-7-12"><a href="#__codelineno-7-12" id="__codelineno-7-12" name="__codelineno-7-12"></a><span class="c1"># Add colocation constraint</span>
-</span><span id="__span-7-13"><a href="#__codelineno-7-13" id="__codelineno-7-13" name="__codelineno-7-13"></a>pcs<span class="w"> </span>constraint<span class="w"> </span>colocation<span class="w"> </span>add<span class="w"> </span>apache<span class="w"> </span>with<span class="w"> </span>vip
-</span><span id="__span-7-14"><a href="#__codelineno-7-14" id="__codelineno-7-14" name="__codelineno-7-14"></a>
-</span><span id="__span-7-15"><a href="#__codelineno-7-15" id="__codelineno-7-15" name="__codelineno-7-15"></a><span class="c1"># Start resources</span>
-</span><span id="__span-7-16"><a href="#__codelineno-7-16" id="__codelineno-7-16" name="__codelineno-7-16"></a>pcs<span class="w"> </span>resource<span class="w"> </span>start<span class="w"> </span>vip
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Create VIP resource
+pcs resource create vip ocf:heartbeat:IPaddr2 \
+    ip=192.168.1.100 cidr_netmask=24
+
+# Create Apache resource
+pcs resource create apache ocf:heartbeat:apache \
+    configfile=/etc/apache2/apache2.conf
+
+# Add ordering constraint
+pcs constraint order start vip then apache
+
+# Add colocation constraint
+pcs constraint colocation add apache with vip
+
+# Start resources
+pcs resource start vip</code></pre>
 <h3 id="5-testing">5. Testing</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="c1"># Test resource failover</span>
-</span><span id="__span-8-2"><a href="#__codelineno-8-2" id="__codelineno-8-2" name="__codelineno-8-2"></a>pcs<span class="w"> </span>resource<span class="w"> </span>move<span class="w"> </span>apache<span class="w"> </span>node2
-</span><span id="__span-8-3"><a href="#__codelineno-8-3" id="__codelineno-8-3" name="__codelineno-8-3"></a>
-</span><span id="__span-8-4"><a href="#__codelineno-8-4" id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="c1"># Verify cluster health</span>
-</span><span id="__span-8-5"><a href="#__codelineno-8-5" id="__codelineno-8-5" name="__codelineno-8-5"></a>pcs<span class="w"> </span>status
-</span><span id="__span-8-6"><a href="#__codelineno-8-6" id="__codelineno-8-6" name="__codelineno-8-6"></a>crm_mon
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Test resource failover
+pcs resource move apache node2
+
+# Verify cluster health
+pcs status
+crm_mon</code></pre>
 <hr/>
 <h2 id="source-code-references">Source Code References</h2>
 <div class="table-wrapper"><table>

@@ -531,18 +531,17 @@
 <li>Live migration support</li>
 </ul>
 <h2 id="quick-commands">Quick Commands</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># List VMs</span>
-</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>virsh<span class="w"> </span>list<span class="w"> </span>--all
-</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="c1"># VM operations</span>
-</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>virsh<span class="w"> </span>start<span class="w"> </span>vm1
-</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>virsh<span class="w"> </span>shutdown<span class="w"> </span>vm1
-</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>virsh<span class="w"> </span>dumpxml<span class="w"> </span>vm1
-</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="c1"># Network management</span>
-</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a>virsh<span class="w"> </span>net-list
-</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a>virsh<span class="w"> </span>net-define<span class="w"> </span>network.xml
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># List VMs
+virsh list --all
+
+# VM operations
+virsh start vm1
+virsh shutdown vm1
+virsh dumpxml vm1
+
+# Network management
+virsh net-list
+virsh net-define network.xml</code></pre>
 <h2 id="source-code">Source Code</h2>
 <ul>
 <li>Repository: https://gitlab.com/libvirt/libvirt</li>

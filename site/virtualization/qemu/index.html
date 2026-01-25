@@ -527,34 +527,30 @@
 <li>Device emulation (network, storage, graphics)</li>
 </ul>
 <h2 id="quick-commands">Quick Commands</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># Create VM</span>
-</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>qemu-system-x86_64<span class="w"> </span>-name<span class="w"> </span>vm1<span class="w"> </span>-m<span class="w"> </span><span class="m">2048</span><span class="w"> </span>-smp<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="w">    </span>-drive<span class="w"> </span><span class="nv">file</span><span class="o">=</span>disk.qcow2,format<span class="o">=</span>qcow2<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="w">    </span>-netdev<span class="w"> </span>user,id<span class="o">=</span>net0,hostfwd<span class="o">=</span>tcp::2222-:22
-</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="c1"># Enable KVM</span>
-</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>qemu-system-x86_64<span class="w"> </span>-enable-kvm<span class="w"> </span>-name<span class="w"> </span>vm1<span class="w"> </span>-m<span class="w"> </span><span class="m">4096</span><span class="w"> </span>-smp<span class="w"> </span><span class="m">4</span>
-</span></code></pre></div>
+<pre class="highlight"><code class="language-bash"># Create VM
+qemu-system-x86_64 -name vm1 -m 2048 -smp 2 \
+    -drive file=disk.qcow2,format=qcow2 \
+    -netdev user,id=net0,hostfwd=tcp::2222-:22
+
+# Enable KVM
+qemu-system-x86_64 -enable-kvm -name vm1 -m 4096 -smp 4</code></pre>
 <h2 id="nifty-behaviors">Nifty Behaviors</h2>
 <h3 id="qmp-programmatic-control">QMP Programmatic Control</h3>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">'{"execute":"query-status"}'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="w">    </span>socat<span class="w"> </span>UNIX-CONNECT:/var/run/libvirt/qemu/vm1.monitor
-</span></code></pre></div>
+<p><pre class="highlight"><code class="language-bash">echo '{"execute":"query-status"}' | \
+    socat UNIX-CONNECT:/var/run/libvirt/qemu/vm1.monitor</code></pre>
 <strong>Nifty</strong>: Programmatic control of running VMs</p>
 <h3 id="virtio-multiqueue">Virtio Multiqueue</h3>
-<p><div class="language-xml highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="nt">&lt;interface</span><span class="w"> </span><span class="na">type=</span><span class="s">'network'</span><span class="nt">&gt;</span>
-</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a><span class="w">    </span><span class="nt">&lt;model</span><span class="w"> </span><span class="na">type=</span><span class="s">'virtio'</span><span class="nt">/&gt;</span>
-</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="w">    </span><span class="nt">&lt;driver</span><span class="w"> </span><span class="na">name=</span><span class="s">'vhost'</span><span class="w"> </span><span class="na">queues=</span><span class="s">'4'</span><span class="nt">/&gt;</span>
-</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="nt">&lt;/interface&gt;</span>
-</span></code></pre></div>
+<p><pre class="highlight"><code class="language-xml">&lt;interface type='network'&gt;
+    &lt;model type='virtio'/&gt;
+    &lt;driver name='vhost' queues='4'/&gt;
+&lt;/interface&gt;</code></pre>
 <strong>Nifty</strong>: Multi-queue network, better throughput</p>
 <h3 id="memory-ballooning">Memory Ballooning</h3>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="c1"># Attach balloon device</span>
-</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a>virsh<span class="w"> </span>attach-device<span class="w"> </span>vm1<span class="w"> </span>balloon.xml
-</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="c1"># Adjust memory</span>
-</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a>virsh<span class="w"> </span>setmem<span class="w"> </span>vm1<span class="w"> </span>2G
-</span></code></pre></div>
+<p><pre class="highlight"><code class="language-bash"># Attach balloon device
+virsh attach-device vm1 balloon.xml
+
+# Adjust memory
+virsh setmem vm1 2G</code></pre>
 <strong>Nifty</strong>: Dynamically adjust VM memory</p>
 <h2 id="source-code">Source Code</h2>
 <ul>
